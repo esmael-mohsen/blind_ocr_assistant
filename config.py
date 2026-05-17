@@ -20,6 +20,12 @@ MIN_FRAME_CAPTURE_COUNT = 1
 MAX_FRAME_CAPTURE_COUNT = 20
 DEFAULT_OCR_TIMEOUT_SECONDS = 10.0
 DEFAULT_OCR_RETRY_COUNT = 1
+DEFAULT_MIN_BRIGHTNESS = 45.0
+DEFAULT_MAX_BRIGHTNESS = 235.0
+DEFAULT_MIN_SHARPNESS = 60.0
+DEFAULT_MIN_CONTRAST = 25.0
+DEFAULT_MIN_TEXT_PRESENCE = 0.12
+DEFAULT_MIN_IMAGE_QUALITY_SCORE = 0.6
 
 
 def _read_bool(name: str, default: bool) -> bool:
@@ -39,6 +45,16 @@ def _read_int(name: str, default: int) -> int:
         return default
 
 
+def _read_float(name: str, default: float) -> float:
+    value = os.getenv(name)
+    if value is None or value == "":
+        return default
+    try:
+        return float(value)
+    except ValueError:
+        return default
+
+
 @dataclass(frozen=True)
 class AppConfig:
     """Central Phase 0 configuration with privacy-preserving defaults."""
@@ -52,6 +68,12 @@ class AppConfig:
     frame_capture_count: int = DEFAULT_FRAME_CAPTURE_COUNT
     ocr_timeout_seconds: float = DEFAULT_OCR_TIMEOUT_SECONDS
     ocr_retry_count: int = DEFAULT_OCR_RETRY_COUNT
+    min_brightness: float = DEFAULT_MIN_BRIGHTNESS
+    max_brightness: float = DEFAULT_MAX_BRIGHTNESS
+    min_sharpness: float = DEFAULT_MIN_SHARPNESS
+    min_contrast: float = DEFAULT_MIN_CONTRAST
+    min_text_presence: float = DEFAULT_MIN_TEXT_PRESENCE
+    min_image_quality_score: float = DEFAULT_MIN_IMAGE_QUALITY_SCORE
     logs_dir: Path = LOGS_DIR
     debug_captures_dir: Path = DEBUG_CAPTURES_DIR
     benchmark_results_dir: Path = BENCHMARK_RESULTS_DIR
@@ -82,6 +104,18 @@ def load_config() -> AppConfig:
             os.getenv("OCR_TIMEOUT_SECONDS", DEFAULT_OCR_TIMEOUT_SECONDS)
         ),
         ocr_retry_count=max(0, _read_int("OCR_RETRY_COUNT", DEFAULT_OCR_RETRY_COUNT)),
+        min_brightness=_read_float("IMAGE_MIN_BRIGHTNESS", DEFAULT_MIN_BRIGHTNESS),
+        max_brightness=_read_float("IMAGE_MAX_BRIGHTNESS", DEFAULT_MAX_BRIGHTNESS),
+        min_sharpness=_read_float("IMAGE_MIN_SHARPNESS", DEFAULT_MIN_SHARPNESS),
+        min_contrast=_read_float("IMAGE_MIN_CONTRAST", DEFAULT_MIN_CONTRAST),
+        min_text_presence=_read_float(
+            "IMAGE_MIN_TEXT_PRESENCE",
+            DEFAULT_MIN_TEXT_PRESENCE,
+        ),
+        min_image_quality_score=_read_float(
+            "IMAGE_MIN_QUALITY_SCORE",
+            DEFAULT_MIN_IMAGE_QUALITY_SCORE,
+        ),
         ocr_space_api_key=os.getenv("OCR_SPACE_API_KEY", ""),
         libretranslate_url=os.getenv("LIBRETRANSLATE_URL", ""),
     )

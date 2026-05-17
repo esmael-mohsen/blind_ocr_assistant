@@ -45,3 +45,34 @@ not available.
 
 Empty or weak OCR output is returned as `NO_TEXT_DETECTED` or `WEAK_OCR_RESULT`,
 not as successful OCR.
+
+## Image Is Too Dark Or Too Bright
+
+Phase 2 returns image-quality guidance instead of running OCR. Improve lighting,
+avoid glare, and recapture before sending the image to later OCR phases.
+
+## Image Is Blurry
+
+Phase 2 returns steadiness or recapture guidance. Hold the camera steady and try
+again before OCR is attempted.
+
+## Image Has Low Contrast
+
+Phase 2 classifies low contrast separately from dark or blurry input. Move the
+document to clearer contrast or better lighting, then recapture.
+
+## No Text-Like Region Is Found
+
+Phase 2 blocks unlikely-text images and returns point-to-text guidance. The
+text-presence estimator is local and does not run OCR.
+
+## Image Format Is Unsupported
+
+Missing, empty, unreadable, or unsupported image input returns a structured
+image-processing error instead of crashing.
+
+## Rejected Image Was Not Preprocessed
+
+That is expected in the normal Phase 2 workflow. Rejected or uncertain images
+return corrective guidance first; preprocessing variants are produced only after
+an accepted quality report.
