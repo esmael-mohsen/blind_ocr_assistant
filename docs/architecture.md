@@ -26,3 +26,23 @@ Reserved package areas are present for future phases:
 These packages must remain behavior-free in Phase 0. OCR, camera capture,
 voice recognition, text-to-speech, translation, and full assistive workflow logic
 begin in later phases.
+
+## Phase 1 OCR Engine Layer
+
+Phase 1 implements independent OCR engines behind `modules.ocr.OCRBaseEngine`.
+The layer owns:
+
+- `OCRRequest`
+- `OCRResult`
+- stable OCR error codes
+- online OCR engine wrapper
+- local accuracy OCR wrapper with lazy loading
+- emergency OCR wrapper
+
+Phase 1 still does not implement camera capture, image-quality pre-checking,
+best-frame selection, OCR cascade routing, text cleanup, voice commands, TTS, or
+translation.
+
+Default OCR logs must contain metadata only: engine name, duration, success
+status, and error code. Raw OCR text is excluded unless an explicit debug text
+logging path is added later.

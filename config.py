@@ -18,6 +18,8 @@ SUPPORTED_LANGUAGES = ("ar", "en")
 DEFAULT_FRAME_CAPTURE_COUNT = 15
 MIN_FRAME_CAPTURE_COUNT = 1
 MAX_FRAME_CAPTURE_COUNT = 20
+DEFAULT_OCR_TIMEOUT_SECONDS = 10.0
+DEFAULT_OCR_RETRY_COUNT = 1
 
 
 def _read_bool(name: str, default: bool) -> bool:
@@ -48,6 +50,8 @@ class AppConfig:
     sensitive_text_logging: bool = False
     log_level: str = "INFO"
     frame_capture_count: int = DEFAULT_FRAME_CAPTURE_COUNT
+    ocr_timeout_seconds: float = DEFAULT_OCR_TIMEOUT_SECONDS
+    ocr_retry_count: int = DEFAULT_OCR_RETRY_COUNT
     logs_dir: Path = LOGS_DIR
     debug_captures_dir: Path = DEBUG_CAPTURES_DIR
     benchmark_results_dir: Path = BENCHMARK_RESULTS_DIR
@@ -74,7 +78,10 @@ def load_config() -> AppConfig:
         sensitive_text_logging=_read_bool("SENSITIVE_TEXT_LOGGING", False),
         log_level=os.getenv("LOG_LEVEL", "INFO").strip().upper() or "INFO",
         frame_capture_count=frame_count,
+        ocr_timeout_seconds=float(
+            os.getenv("OCR_TIMEOUT_SECONDS", DEFAULT_OCR_TIMEOUT_SECONDS)
+        ),
+        ocr_retry_count=max(0, _read_int("OCR_RETRY_COUNT", DEFAULT_OCR_RETRY_COUNT)),
         ocr_space_api_key=os.getenv("OCR_SPACE_API_KEY", ""),
         libretranslate_url=os.getenv("LIBRETRANSLATE_URL", ""),
     )
-

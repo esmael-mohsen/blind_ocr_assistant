@@ -29,3 +29,11 @@ Verifies:
 Missing optional quality tools are warnings, not failures. The command does not
 use service credentials, internet, camera hardware, audio devices, OCR engines,
 STT, TTS, or translation engines.
+
+## Optional Live OCR Check
+
+Phase 1 live online OCR verification is opt-in. Set a free `OCR_SPACE_API_KEY`
+only when you intentionally want to call the online provider, then run the live
+OCR test documented in `specs/002-phase1-ocr-engines/quickstart.md`.
+
+Without the credential, live OCR tests are skipped and local tests still pass.

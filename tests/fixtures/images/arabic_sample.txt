@@ -1,0 +1,2 @@
+Small safe placeholder for an Arabic printed-text OCR fixture.
+
