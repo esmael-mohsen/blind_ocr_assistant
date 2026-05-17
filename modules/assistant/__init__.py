@@ -1,0 +1,2 @@
+"""Assistant orchestration package placeholder."""
+

@@ -1,0 +1,2 @@
+"""Camera package placeholder."""
+

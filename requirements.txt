@@ -1,0 +1,8 @@
+pytest>=8.0
+python-dotenv>=1.0
+
+# Optional development quality tools
+ruff>=0.4
+black>=24.0
+mypy>=1.8
+
