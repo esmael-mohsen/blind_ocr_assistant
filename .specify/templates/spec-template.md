@@ -77,6 +77,10 @@
 
 - What happens when [boundary condition]?
 - How does system handle [error scenario]?
+- What spoken guidance is provided when capture quality is poor, no text is
+  detected, OCR confidence is weak, internet is unavailable, or translation
+  fails?
+- What user content, if any, is uploaded, stored, logged, or retained?
 
 ## Requirements *(mandatory)*
 
@@ -92,6 +96,20 @@
 - **FR-003**: Users MUST be able to [key interaction, e.g., "reset their password"]
 - **FR-004**: System MUST [data requirement, e.g., "persist user preferences"]
 - **FR-005**: System MUST [behavior, e.g., "log all security events"]
+
+### Constitution Requirements
+
+- **CR-001**: Feature MUST be usable without visual confirmation and MUST define
+  required spoken feedback.
+- **CR-002**: Feature MUST document OCR, translation, STT, or TTS fallback
+  behavior when it touches those workflows.
+- **CR-003**: Feature MUST avoid paid-service dependency and identify any online
+  service as optional and replaceable.
+- **CR-004**: Feature MUST define privacy behavior for images, raw OCR text,
+  clean text, translations, logs, and debug artifacts.
+- **CR-005**: Feature MUST define measurable acceptance or benchmark criteria
+  for Arabic, English, mixed text, and relevant failure modes when OCR behavior
+  changes.
 
 *Example of marking unclear requirements:*
 
