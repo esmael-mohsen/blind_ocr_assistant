@@ -31,5 +31,8 @@
 
 ## Notes
 
-- Validation complete on 2026-05-17. The specification contains no clarification
-  markers and is ready for `/speckit-clarify` or `/speckit-plan`.
+- Validation complete on 2026-05-17. Clarification pass applied recommended
+  decisions for burst-count clamping, camera source fallback order,
+  partial-timeout handling, deterministic tie-breaking, and depth distance
+  categories. The specification contains no clarification markers and is ready
+  for `/speckit-plan`.

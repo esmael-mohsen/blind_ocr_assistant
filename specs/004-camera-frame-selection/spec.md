@@ -8,6 +8,16 @@
 
 **Input**: User description: "Read implementationPlan.md and create the specification for Phase 3 with best practices"
 
+## Clarifications
+
+### Session 2026-05-17
+
+- Q: How should out-of-range burst counts be handled? -> A: Clamp capture count to the 10-20 frame range.
+- Q: What camera source order should Phase 3 use? -> A: Prefer the target depth camera, then fall back to generic RGB capture.
+- Q: What happens if capture times out before the requested burst count? -> A: Score any valid captured frames; fail only when no valid frames were captured.
+- Q: How should similar frame scores be resolved? -> A: Prefer acceptable image quality first, then stability, then earliest frame.
+- Q: What default distance categories should depth guidance use? -> A: Too close under 25 cm, acceptable 25-75 cm, too far above 75 cm.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Select the Best Frame From a Capture Burst (Priority: P1)
@@ -36,8 +46,8 @@ guidance when no frame is acceptable.
 3. **Given** two frames have similar quality, **When** best-frame selection runs,
    **Then** the decision is deterministic and stable across repeated runs.
 4. **Given** the configured capture count is outside the allowed range, **When**
-   a burst request is created, **Then** the request is rejected or clamped to the
-   bounded range before capture starts.
+   a burst request is created, **Then** the request is clamped to the bounded
+   range before capture starts.
 
 ---
 
@@ -51,10 +61,12 @@ phases can request still frames without owning camera-specific details.
 assistant can use real images. It must degrade cleanly on development machines
 without hardware.
 
-**Independent Test**: With a mocked camera source, the capture layer opens the
-source, captures one or more RGB frames, returns structured frame candidates,
-and releases resources after success, failure, and timeout paths. With hardware
-available, an opt-in manual script verifies live RGB capture.
+**Independent Test**: With a mocked camera source, the capture layer prefers the
+target depth camera path when available, falls back to generic RGB capture when
+the target path is unavailable, captures one or more RGB frames, returns
+structured frame candidates, and releases resources after success, failure, and
+timeout paths. With hardware available, an opt-in manual script verifies live
+RGB capture.
 
 **Acceptance Scenarios**:
 
@@ -67,6 +79,9 @@ available, an opt-in manual script verifies live RGB capture.
    local validation.
 4. **Given** a capture timeout or unreadable frame, **When** capture fails,
    **Then** the result contains a stable failure reason and user-safe guidance.
+5. **Given** capture times out after at least one valid frame is captured,
+   **When** selection runs, **Then** the valid captured frames are still scored
+   and the timeout condition is recorded.
 
 ---
 
@@ -105,11 +120,16 @@ candidates, it still selects a best frame without failing.
 - Target camera is disconnected, busy, unsupported, or fails to open.
 - Camera opens but returns no frame, an empty frame, corrupted data, or frames
   with inconsistent dimensions.
-- Capture times out before the requested burst count is reached.
-- The requested burst count is below 10 or above 20.
+- Capture times out before the requested burst count is reached; valid captured
+  frames are still scored, while zero valid frames returns a capture failure.
+- The requested burst count is below 10 or above 20 and is clamped before
+  capture starts.
 - All frames are poor quality or receive only uncertain quality reports.
-- Frames have similar scores and require deterministic tie-breaking.
+- Frames have similar scores and require deterministic tie-breaking by
+  acceptable quality first, then stability, then earliest frame.
 - Depth data is missing, invalid, noisy, out of range, or not aligned with RGB.
+- Depth data indicates a document closer than 25 cm, between 25-75 cm, or
+  farther than 75 cm.
 - The camera supports RGB but not depth; RGB-only mode must still work.
 - Camera resources must be released after success, failure, timeout, or
   cancellation.
@@ -123,10 +143,12 @@ candidates, it still selects a best frame without failing.
 
 - **FR-001**: The system MUST define a camera abstraction that can capture RGB
   frame candidates without exposing hardware-specific behavior to later phases.
-- **FR-002**: The system MUST support the target depth camera when available and
-  MUST support RGB-only fallback when depth is unavailable.
+- **FR-002**: The system MUST prefer the target depth camera when available and
+  MUST fall back to generic RGB capture when the target camera or depth support
+  is unavailable.
 - **FR-003**: The system MUST capture a bounded burst of frames, with the normal
-  configured range limited to 10-20 frames.
+  configured range limited to 10-20 frames; out-of-range requests MUST be
+  clamped before capture starts.
 - **FR-004**: Every captured frame candidate MUST include a stable identifier,
   RGB image data, timestamp, score fields, and safe metadata.
 - **FR-005**: Frame candidates MAY include depth data and distance status when
@@ -134,7 +156,8 @@ candidates, it still selects a best frame without failing.
 - **FR-006**: The system MUST score frame candidates using image quality signals
   from Phase 2 plus stability and distance signals when available.
 - **FR-007**: The system MUST select the highest-scoring acceptable frame from a
-  burst and return the full score breakdown.
+  burst and return the full score breakdown. Ties MUST prefer acceptable image
+  quality first, then stability, then earliest frame order.
 - **FR-008**: If no acceptable frame exists, the system MUST return a structured
   failure and actionable guidance for recapture.
 - **FR-009**: Best-frame selection MUST be deterministic for the same ordered
@@ -157,6 +180,12 @@ candidates, it still selects a best frame without failing.
   or the full assistant workflow.
 - **FR-016**: Permanent frame saving MUST be disabled by default and controlled
   only by explicit debug configuration when introduced.
+- **FR-017**: If capture times out after one or more valid frames were captured,
+  the system MUST still score those valid frames and record the timeout
+  condition; if zero valid frames were captured, it MUST return a structured
+  capture failure.
+- **FR-018**: Depth guidance MUST classify distance as too close below 25 cm,
+  acceptable from 25 cm through 75 cm, too far above 75 cm, or unavailable.
 
 ### Constitution Requirements
 
@@ -187,7 +216,9 @@ candidates, it still selects a best frame without failing.
   optional depth data, timestamp, quality score fields, distance status, total
   score, and safe metadata.
 - **Depth Report**: Distance classification for a candidate, including status,
-  score contribution, and guidance when depth is usable or unavailable.
+  score contribution, and guidance when depth is usable or unavailable. Default
+  categories are too close below 25 cm, acceptable from 25 cm through 75 cm, too
+  far above 75 cm, and unavailable.
 - **Frame Score**: A deterministic score breakdown combining image quality,
   stability, distance, and acceptance status.
 - **Best Frame Selection Result**: Structured outcome containing selected frame
@@ -218,17 +249,23 @@ candidates, it still selects a best frame without failing.
 - **SC-008**: Phase 3 validation confirms no OCR execution, OCR cascade, text
   cleanup, voice command, TTS, translation, or full assistant workflow behavior
   is implemented.
+- **SC-009**: 100% of tie-breaker tests select by acceptable quality first,
+  stability second, and earliest frame third.
+- **SC-010**: 100% of partial-timeout tests score valid captured frames when at
+  least one valid frame exists and fail only when no valid frame exists.
 
 ## Assumptions
 
 - Phase 3 consumes Phase 2 image-quality results and preprocessing readiness but
   does not run OCR.
 - Live hardware checks are optional/manual; automated tests use mocked camera
-  sources and deterministic frame fixtures.
+  sources and deterministic frame fixtures. The target depth camera is preferred
+  when available, with generic RGB capture as the degraded fallback.
 - The normal burst count defaults to the project setting of 15 frames and is
-  bounded to the 10-20 frame range for Phase 3 capture workflows.
+  clamped to the 10-20 frame range for Phase 3 capture workflows.
 - Depth data is treated as an enhancement, not a requirement; RGB-only capture
-  must remain a valid degraded mode.
+  must remain a valid degraded mode. Default depth categories are too close
+  below 25 cm, acceptable from 25 cm through 75 cm, and too far above 75 cm.
 - Camera test output may be textual for developers, while user-facing capture
   guidance is returned as messages that later TTS phases can speak.
 - Captured frames are handled in memory by default; permanent saving is reserved

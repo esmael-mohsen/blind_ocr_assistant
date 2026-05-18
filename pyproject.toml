@@ -3,6 +3,7 @@ testpaths = ["tests"]
 pythonpath = ["."]
 markers = [
     "live_ocr: opt-in tests that call a free online OCR provider",
+    "live_camera: opt-in tests that require physical camera hardware",
     "phase2_image: deterministic local Phase 2 image-processing tests",
 ]
 
