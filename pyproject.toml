@@ -1,0 +1,20 @@
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+markers = [
+    "live_ocr: opt-in tests that call a free online OCR provider",
+    "live_camera: opt-in tests that require physical camera hardware",
+    "phase2_image: deterministic local Phase 2 image-processing tests",
+]
+
+[tool.ruff]
+line-length = 88
+target-version = "py310"
+
+[tool.black]
+line-length = 88
+target-version = ["py310"]
+
+[tool.mypy]
+python_version = "3.10"
+ignore_missing_imports = true

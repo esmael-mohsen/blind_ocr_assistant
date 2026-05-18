@@ -40,7 +40,27 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+Document how this feature satisfies the Blind OCR Assistant Constitution:
+
+- Accessibility First: spoken feedback for every essential state; no visual-only
+  required workflow.
+- Accuracy Before Speed: image quality checks, best-frame selection,
+  preprocessing, OCR quality evaluation, and recapture guidance.
+- Free Online-First, Offline-Fallback: no paid or billing-required dependency;
+  online services are optional; offline fallbacks are identified.
+- Graceful Degradation: failure paths explain the problem and trigger the next
+  viable fallback before asking for recapture.
+- Privacy by Default: uploads, debug image saving, sensitive-text logging, and
+  retention are explicit and disabled unless required.
+- Modular Engines: OCR, translation, STT, and TTS engine boundaries are kept
+  behind interfaces.
+- Testability and Observability: tests, benchmark samples, quality scores,
+  selected engine, duration, fallback use, and failure reasons are captured.
+- Raspberry Pi Resource Awareness: heavy engines are lazy-loaded; timeouts,
+  queues, frame counts, and memory use are bounded.
+
+Any unresolved violation MUST be recorded in Complexity Tracking with rationale
+and mitigation before implementation planning continues.
 
 ## Project Structure
 
