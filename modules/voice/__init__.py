@@ -1,6 +1,28 @@
 """Voice package exports."""
 
+from modules.voice.command_models import (
+    CommandConfidence,
+    CommandError,
+    CommandErrorCode,
+    CommandFeedback,
+    CommandIntent,
+    CommandOperation,
+    CommandPath,
+    CommandRequest,
+    CommandResult,
+    DialogueState,
+    normalize_command_language,
+    sanitize_command_metadata,
+)
+from modules.voice.command_parser import CommandParser, normalize_command_phrase
+from modules.voice.stt_online import (
+    CommandRecognizer,
+    MockCommandRecognizer,
+    OnlineSTTRecognizer,
+    recognize_safely,
+)
 from modules.voice.tts_engine import EspeakNGEngine, MockTTSEngine, TTSEngine
+from modules.voice.vosk_fallback import VoskFallbackRecognizer
 from modules.voice.voice_models import (
     DEFAULT_SPEECH_RATE_WPM,
     MAX_SPEECH_RATE_WPM,
@@ -20,11 +42,25 @@ from modules.voice.voice_models import (
 )
 
 __all__ = [
+    "CommandConfidence",
+    "CommandError",
+    "CommandErrorCode",
+    "CommandFeedback",
+    "CommandIntent",
+    "CommandOperation",
+    "CommandParser",
+    "CommandPath",
+    "CommandRecognizer",
+    "CommandRequest",
+    "CommandResult",
     "DEFAULT_SPEECH_RATE_WPM",
+    "DialogueState",
     "EspeakNGEngine",
     "MAX_SPEECH_RATE_WPM",
     "MIN_SPEECH_RATE_WPM",
+    "MockCommandRecognizer",
     "MockTTSEngine",
+    "OnlineSTTRecognizer",
     "ReadingControlCommand",
     "ReadingControlType",
     "ReadingState",
@@ -36,6 +72,11 @@ __all__ = [
     "TTSErrorCode",
     "TTSEngine",
     "TextSegment",
+    "VoskFallbackRecognizer",
     "clamp_speech_rate",
+    "normalize_command_language",
+    "normalize_command_phrase",
+    "recognize_safely",
+    "sanitize_command_metadata",
     "sanitize_speech_metadata",
 ]

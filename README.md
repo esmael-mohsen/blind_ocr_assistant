@@ -94,3 +94,19 @@ python -m mypy .
 
 The bootstrap self-check reports missing optional quality tools as warnings. They
 do not block core Phase 0 readiness.
+
+## Raspberry Pi Deployment Hardening
+
+Phase 11 adds a deployment package for Raspberry Pi readiness checks:
+
+```bash
+python scripts/pi_deployment_check.py --full --skip-hardware
+python scripts/pi_deployment_check.py --full --offline --skip-hardware
+```
+
+The diagnostics use Ready, Degraded, Blocked, and Manual Verification Needed
+states. They write local privacy-safe summaries under `deployment_diagnostics/`
+and exclude user images, OCR text, translations, secrets, and private debug
+paths. Manual startup remains available through `scripts/run_assistant.sh`; the
+systemd service template is optional and disabled until a maintainer enables it
+intentionally.

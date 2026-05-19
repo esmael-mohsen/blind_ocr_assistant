@@ -27,7 +27,11 @@ coverage.xml
 # Runtime output
 logs/
 debug_captures/
-benchmark_results/
+benchmark_results/*
+!benchmark_results/.gitkeep
+deployment_diagnostics/*
+!deployment_diagnostics/.gitkeep
+models/
 config/local.*
 
 # Editor and OS files
@@ -37,4 +41,3 @@ config/local.*
 *.tmp
 .DS_Store
 Thumbs.db
-

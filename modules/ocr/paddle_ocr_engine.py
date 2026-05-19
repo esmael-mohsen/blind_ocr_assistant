@@ -8,7 +8,6 @@ from typing import Any, Callable
 from modules.ocr.base import OCRBaseEngine
 from modules.ocr.ocr_models import OCRErrorCode, OCRRequest, OCRResult
 
-
 ModelFactory = Callable[[], Any]
 
 
@@ -74,10 +73,12 @@ class PaddleOCREngine(OCRBaseEngine):
 
         from paddleocr import PaddleOCR  # type: ignore
 
-        self._model = PaddleOCR(use_angle_cls=True, lang="arabic")
+        self._model = PaddleOCR(use_textline_orientation=True, lang="ar")
         return self._model
 
-    def _read_image(self, request: OCRRequest, started: float) -> bytes | str | OCRResult:
+    def _read_image(
+        self, request: OCRRequest, started: float
+    ) -> bytes | str | OCRResult:
         if request.image_bytes is not None:
             return request.image_bytes
         path = Path(request.image_path or "")
@@ -105,9 +106,5 @@ class PaddleOCREngine(OCRBaseEngine):
                             confidences.append(float(value[1]))
                         except (TypeError, ValueError):
                             pass
-        confidence = (
-            sum(confidences) / len(confidences)
-            if confidences
-            else None
-        )
+        confidence = sum(confidences) / len(confidences) if confidences else None
         return "\n".join(texts), confidence

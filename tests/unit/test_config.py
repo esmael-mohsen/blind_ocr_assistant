@@ -13,8 +13,9 @@ def test_config_defaults_are_safe(monkeypatch) -> None:
         "FRAME_CAPTURE_COUNT",
         "OCR_SPACE_API_KEY",
         "LIBRETRANSLATE_URL",
+        "LIBRETRANSLATE_API_KEY",
     ):
-        monkeypatch.delenv(name, raising=False)
+        monkeypatch.setenv(name, "")
 
     config = load_config()
 
@@ -27,6 +28,7 @@ def test_config_defaults_are_safe(monkeypatch) -> None:
     assert config.frame_capture_count == 15
     assert config.ocr_space_api_key == ""
     assert config.libretranslate_url == ""
+    assert config.libretranslate_api_key == ""
 
 
 def test_frame_capture_count_is_bounded(monkeypatch) -> None:

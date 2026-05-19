@@ -3,12 +3,17 @@ python-dotenv>=1.0
 requests>=2.31
 pytest-mock>=3.12
 pytest-cov>=5.0
-numpy>=1.24
+numpy>=1.24,<2.4
 opencv-python-headless>=4.8
 
 # Optional OCR engines for Phase 1
 pytesseract>=0.3
-# PaddleOCR is optional and platform-sensitive; install manually on target envs.
+paddleocr>=3.5
+paddlepaddle>=3.3
+
+# Optional offline voice command and translation fallbacks
+vosk>=0.3.45
+argostranslate>=1.11
 
 # Optional development quality tools
 ruff>=0.4

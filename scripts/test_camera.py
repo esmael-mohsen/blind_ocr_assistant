@@ -19,7 +19,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         default_camera_sources,
     )
 
-    parser = argparse.ArgumentParser(description="Validate Phase 3 camera capture.")
+    parser = argparse.ArgumentParser(
+        description=(
+            "Validate Phase 3 camera capture. For Phase 11 deployment "
+            "diagnostics, also run scripts/pi_deployment_check.py --full."
+        )
+    )
     parser.add_argument(
         "--live",
         action="store_true",

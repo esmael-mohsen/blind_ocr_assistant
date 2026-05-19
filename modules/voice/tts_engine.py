@@ -4,6 +4,10 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass, field
+import os
+from pathlib import Path
+import re
+import shutil
 import subprocess
 import time
 from typing import Protocol
@@ -112,6 +116,58 @@ class MockTTSEngine:
 Runner = Callable[..., subprocess.CompletedProcess[str]]
 
 
+def _resolve_scoop_shim_target(executable_path: Path) -> Path | None:
+    shim_path = executable_path.with_suffix(".shim")
+    if not shim_path.is_file():
+        return None
+    try:
+        content = shim_path.read_text(encoding="utf-8", errors="ignore")
+    except OSError:
+        return None
+    for line in content.splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        match = re.match(r"path\s*=\s*(?:\"(?P<quoted>.+)\"|(?P<raw>.+))$", stripped)
+        if not match:
+            continue
+        raw_path = (match.group("quoted") or match.group("raw") or "").strip()
+        if not raw_path:
+            continue
+        return Path(raw_path)
+    return None
+
+
+def _resolve_executable_path(binary: str) -> Path | None:
+    if not binary.strip():
+        return None
+    candidate = Path(binary)
+    if candidate.is_file():
+        scoop_target = _resolve_scoop_shim_target(candidate)
+        if scoop_target is not None and scoop_target.is_file():
+            return scoop_target
+        return candidate
+    resolved = shutil.which(binary)
+    if not resolved:
+        return None
+    resolved_path = Path(resolved)
+    scoop_target = _resolve_scoop_shim_target(resolved_path)
+    if scoop_target is not None and scoop_target.is_file():
+        return scoop_target
+    return resolved_path
+
+
+def _guess_espeak_data_path(binary_path: Path) -> Path | None:
+    candidates = (
+        binary_path.parent / "espeak-ng-data",
+        binary_path.parent.parent / "espeak-ng-data",
+    )
+    for candidate in candidates:
+        if (candidate / "phontab").is_file() and (candidate / "voices").is_dir():
+            return candidate
+    return None
+
+
 @dataclass
 class EspeakNGEngine:
     """Local eSpeak NG adapter with subprocess errors converted to results."""
@@ -133,14 +189,27 @@ class EspeakNGEngine:
             str(request.rate_wpm),
         ]
         try:
-            completed = self.runner(
-                command,
-                input=request.text,
-                text=True,
-                capture_output=True,
-                timeout=self.timeout_seconds,
-                check=False,
-            )
+            env = None
+            if not (os.getenv("ESPEAK_DATA_PATH") or os.getenv("ESPEAKNG_DATA_PATH")):
+                resolved_binary = _resolve_executable_path(self.binary)
+                if resolved_binary is not None:
+                    data_path = _guess_espeak_data_path(resolved_binary)
+                    if data_path is not None:
+                        env = dict(os.environ)
+                        env.setdefault("ESPEAK_DATA_PATH", str(data_path))
+                        env.setdefault("ESPEAKNG_DATA_PATH", str(data_path))
+
+            run_kwargs: dict[str, object] = {
+                "input": request.text,
+                "text": True,
+                "capture_output": True,
+                "timeout": self.timeout_seconds,
+                "check": False,
+            }
+            if env is not None:
+                run_kwargs["env"] = env
+
+            completed = self.runner(command, **run_kwargs)
         except FileNotFoundError:
             return SpeechResult.failure(
                 operation=request.operation,

@@ -6,7 +6,6 @@ from dataclasses import dataclass
 import os
 from pathlib import Path
 
-
 PROJECT_ROOT = Path(__file__).resolve().parent
 
 LOGS_DIR = PROJECT_ROOT / "logs"
@@ -104,6 +103,7 @@ class AppConfig:
     config_dir: Path = CONFIG_DIR
     ocr_space_api_key: str = ""
     libretranslate_url: str = ""
+    libretranslate_api_key: str = ""
 
     @property
     def runtime_dirs(self) -> tuple[Path, ...]:
@@ -117,8 +117,11 @@ class AppConfig:
 
 def load_config() -> AppConfig:
     """Load Phase 0 config from environment without requiring any secrets."""
+    _load_dotenv_if_available()
     frame_count = _read_int("FRAME_CAPTURE_COUNT", DEFAULT_FRAME_CAPTURE_COUNT)
-    frame_count = max(MIN_FRAME_CAPTURE_COUNT, min(MAX_FRAME_CAPTURE_COUNT, frame_count))
+    frame_count = max(
+        MIN_FRAME_CAPTURE_COUNT, min(MAX_FRAME_CAPTURE_COUNT, frame_count)
+    )
     camera_frame_count = _read_int(
         "CAMERA_FRAME_CAPTURE_COUNT",
         DEFAULT_CAMERA_FRAME_CAPTURE_COUNT,
@@ -190,4 +193,13 @@ def load_config() -> AppConfig:
         ),
         ocr_space_api_key=os.getenv("OCR_SPACE_API_KEY", ""),
         libretranslate_url=os.getenv("LIBRETRANSLATE_URL", ""),
+        libretranslate_api_key=os.getenv("LIBRETRANSLATE_API_KEY", ""),
     )
+
+
+def _load_dotenv_if_available() -> None:
+    try:
+        from dotenv import load_dotenv
+    except ImportError:
+        return
+    load_dotenv(PROJECT_ROOT / ".env", override=False)

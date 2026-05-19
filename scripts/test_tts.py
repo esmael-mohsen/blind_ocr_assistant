@@ -5,9 +5,15 @@ from __future__ import annotations
 import argparse
 import json
 from collections.abc import Callable, Sequence
+from pathlib import Path
+import sys
 
-from modules.voice.tts_engine import EspeakNGEngine, TTSEngine
-from modules.voice.voice_models import (
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from modules.voice.tts_engine import EspeakNGEngine, TTSEngine  # noqa: E402
+from modules.voice.voice_models import (  # noqa: E402
     SpeechOperation,
     SpeechRequest,
     SpeechResult,
@@ -19,7 +25,11 @@ from modules.voice.voice_models import (
 def build_parser() -> argparse.ArgumentParser:
     """Build the TTS smoke-test argument parser."""
     parser = argparse.ArgumentParser(
-        description="Run a local eSpeak NG smoke test without printing text content."
+        description=(
+            "Run a local eSpeak NG smoke test without printing text content. "
+            "For Phase 11 speaker diagnostics, also run "
+            "scripts/pi_deployment_check.py --full."
+        )
     )
     parser.add_argument("--text", required=True, help="Clean text to speak")
     parser.add_argument(

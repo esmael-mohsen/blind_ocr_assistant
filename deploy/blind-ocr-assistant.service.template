@@ -1,0 +1,24 @@
+# Optional systemd service template for Blind OCR Assistant.
+# This file is disabled by default and must be copied/enabled intentionally.
+
+[Unit]
+Description=Blind OCR Assistant
+Documentation=file:/opt/blind_ocr_assistant/docs/troubleshooting.md
+After=network-online.target sound.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/blind_ocr_assistant
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/opt/blind_ocr_assistant/scripts/run_assistant.sh
+ExecStop=/bin/kill -TERM $MAINPID
+KillSignal=SIGTERM
+TimeoutStopSec=20
+Restart=on-failure
+RestartSec=5
+StandardOutput=append:/opt/blind_ocr_assistant/logs/assistant-service.log
+StandardError=append:/opt/blind_ocr_assistant/logs/assistant-service.log
+
+[Install]
+WantedBy=multi-user.target

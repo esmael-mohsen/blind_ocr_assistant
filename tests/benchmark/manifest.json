@@ -1,0 +1,177 @@
+{
+  "dataset_id": "phase10-controlled",
+  "created_for_phase": "phase10",
+  "minimum_sample_count": 12,
+  "samples": [
+    {
+      "sample_id": "arabic_book_normal_001",
+      "image_path": "tests/benchmark/samples/arabic_book_normal_001.txt",
+      "scenario_labels": ["book_page", "normal_quality"],
+      "language_label": "ar",
+      "quality_label": "normal",
+      "expected_text_id": "arabic_book_normal_001",
+      "privacy_classification": "safe_fixture"
+    },
+    {
+      "sample_id": "english_document_normal_001",
+      "image_path": "tests/benchmark/samples/english_document_normal_001.txt",
+      "scenario_labels": ["printed_document", "normal_quality"],
+      "language_label": "en",
+      "quality_label": "normal",
+      "expected_text_id": "english_document_normal_001",
+      "privacy_classification": "safe_fixture"
+    },
+    {
+      "sample_id": "mixed_receipt_normal_001",
+      "image_path": "tests/benchmark/samples/mixed_receipt_normal_001.txt",
+      "scenario_labels": ["receipt", "normal_quality"],
+      "language_label": "mixed",
+      "quality_label": "normal",
+      "expected_text_id": "mixed_receipt_normal_001",
+      "privacy_classification": "safe_fixture"
+    },
+    {
+      "sample_id": "medicine_package_normal_001",
+      "image_path": "tests/benchmark/samples/medicine_package_normal_001.txt",
+      "scenario_labels": ["medicine_package", "normal_quality"],
+      "language_label": "en",
+      "quality_label": "normal",
+      "expected_text_id": "medicine_package_normal_001",
+      "privacy_classification": "safe_fixture"
+    },
+    {
+      "sample_id": "street_sign_normal_001",
+      "image_path": "tests/benchmark/samples/street_sign_normal_001.txt",
+      "scenario_labels": ["sign", "normal_quality"],
+      "language_label": "mixed",
+      "quality_label": "normal",
+      "expected_text_id": "street_sign_normal_001",
+      "privacy_classification": "safe_fixture"
+    },
+    {
+      "sample_id": "arabic_low_light_001",
+      "image_path": "tests/benchmark/samples/arabic_low_light_001.txt",
+      "scenario_labels": ["book_page", "low_light"],
+      "language_label": "ar",
+      "quality_label": "low_light",
+      "expected_text_id": "arabic_low_light_001",
+      "privacy_classification": "safe_fixture"
+    },
+    {
+      "sample_id": "english_angled_001",
+      "image_path": "tests/benchmark/samples/english_angled_001.txt",
+      "scenario_labels": ["printed_document", "angled_image"],
+      "language_label": "en",
+      "quality_label": "angled",
+      "expected_text_id": "english_angled_001",
+      "privacy_classification": "safe_fixture"
+    },
+    {
+      "sample_id": "mixed_far_receipt_001",
+      "image_path": "tests/benchmark/samples/mixed_far_receipt_001.txt",
+      "scenario_labels": ["receipt", "far_image"],
+      "language_label": "mixed",
+      "quality_label": "far",
+      "expected_text_id": "mixed_far_receipt_001",
+      "privacy_classification": "safe_fixture"
+    },
+    {
+      "sample_id": "english_blurry_sign_001",
+      "image_path": "tests/benchmark/samples/english_blurry_sign_001.txt",
+      "scenario_labels": ["sign", "blurry_image"],
+      "language_label": "en",
+      "quality_label": "blurry",
+      "expected_text_id": "english_blurry_sign_001",
+      "privacy_classification": "safe_fixture"
+    },
+    {
+      "sample_id": "arabic_blurry_package_001",
+      "image_path": "tests/benchmark/samples/arabic_blurry_package_001.txt",
+      "scenario_labels": ["medicine_package", "blurry_image"],
+      "language_label": "ar",
+      "quality_label": "blurry",
+      "privacy_classification": "safe_fixture"
+    },
+    {
+      "sample_id": "english_far_document_001",
+      "image_path": "tests/benchmark/samples/english_far_document_001.txt",
+      "scenario_labels": ["printed_document", "far_image"],
+      "language_label": "en",
+      "quality_label": "far",
+      "privacy_classification": "safe_fixture"
+    },
+    {
+      "sample_id": "mixed_low_light_sign_001",
+      "image_path": "tests/benchmark/samples/mixed_low_light_sign_001.txt",
+      "scenario_labels": ["sign", "low_light"],
+      "language_label": "mixed",
+      "quality_label": "low_light",
+      "privacy_classification": "safe_fixture"
+    }
+  ],
+  "expected_texts": [
+    {
+      "expected_text_id": "arabic_book_normal_001",
+      "text_path": "tests/benchmark/expected/arabic_book_normal_001.txt",
+      "language_label": "ar",
+      "normalization_policy": "preserve_meaning",
+      "privacy_classification": "safe_fixture"
+    },
+    {
+      "expected_text_id": "english_document_normal_001",
+      "text_path": "tests/benchmark/expected/english_document_normal_001.txt",
+      "language_label": "en",
+      "normalization_policy": "preserve_meaning",
+      "privacy_classification": "safe_fixture"
+    },
+    {
+      "expected_text_id": "mixed_receipt_normal_001",
+      "text_path": "tests/benchmark/expected/mixed_receipt_normal_001.txt",
+      "language_label": "mixed",
+      "normalization_policy": "preserve_meaning",
+      "privacy_classification": "safe_fixture"
+    },
+    {
+      "expected_text_id": "medicine_package_normal_001",
+      "text_path": "tests/benchmark/expected/medicine_package_normal_001.txt",
+      "language_label": "en",
+      "normalization_policy": "preserve_meaning",
+      "privacy_classification": "safe_fixture"
+    },
+    {
+      "expected_text_id": "street_sign_normal_001",
+      "text_path": "tests/benchmark/expected/street_sign_normal_001.txt",
+      "language_label": "mixed",
+      "normalization_policy": "preserve_meaning",
+      "privacy_classification": "safe_fixture"
+    },
+    {
+      "expected_text_id": "arabic_low_light_001",
+      "text_path": "tests/benchmark/expected/arabic_low_light_001.txt",
+      "language_label": "ar",
+      "normalization_policy": "preserve_meaning",
+      "privacy_classification": "safe_fixture"
+    },
+    {
+      "expected_text_id": "english_angled_001",
+      "text_path": "tests/benchmark/expected/english_angled_001.txt",
+      "language_label": "en",
+      "normalization_policy": "preserve_meaning",
+      "privacy_classification": "safe_fixture"
+    },
+    {
+      "expected_text_id": "mixed_far_receipt_001",
+      "text_path": "tests/benchmark/expected/mixed_far_receipt_001.txt",
+      "language_label": "mixed",
+      "normalization_policy": "preserve_meaning",
+      "privacy_classification": "safe_fixture"
+    },
+    {
+      "expected_text_id": "english_blurry_sign_001",
+      "text_path": "tests/benchmark/expected/english_blurry_sign_001.txt",
+      "language_label": "en",
+      "normalization_policy": "preserve_meaning",
+      "privacy_classification": "safe_fixture"
+    }
+  ]
+}

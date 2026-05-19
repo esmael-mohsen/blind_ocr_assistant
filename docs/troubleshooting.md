@@ -195,6 +195,35 @@ not installed or cannot be found. Automated tests use a mocked speech engine, so
 they still pass without live audio. Install eSpeak NG on the Raspberry Pi or
 development machine before running the manual TTS smoke test.
 
+## eSpeak NG Crashes On Windows (exit -1073741819)
+
+If `espeak-ng` is installed but crashes immediately on Windows with exit code
+`-1073741819` (`0xC0000005` access violation), the process may not be able to
+locate its `espeak-ng-data` directory.
+
+Fix by setting `ESPEAK_DATA_PATH` to the folder that contains `phontab` and the
+`voices/` directory, then retry:
+
+PowerShell (current session):
+
+```powershell
+$env:ESPEAK_DATA_PATH = "$env:USERPROFILE\scoop\apps\espeak-ng\current\espeak-ng-data"
+espeak-ng --version
+```
+
+CMD (current session):
+
+```bat
+set ESPEAK_DATA_PATH=%USERPROFILE%\scoop\apps\espeak-ng\current\espeak-ng-data
+espeak-ng --version
+```
+
+To persist the setting for your user account (new terminals only):
+
+```powershell
+setx ESPEAK_DATA_PATH "$env:USERPROFILE\scoop\apps\espeak-ng\current\espeak-ng-data"
+```
+
 ## Reading Does Not Pause Natively
 
 Native pause and resume are not guaranteed for the initial eSpeak NG adapter.
@@ -231,3 +260,229 @@ paragraph.
 `scripts/test_tts.py` intentionally prints structured safe metadata only. It
 does not echo the supplied text because clean OCR text may contain private
 document content.
+
+## Online Translation Is Unavailable
+
+Phase 7 uses the online translation path only when online translation is allowed
+and a provider is configured. If the online provider is disabled, missing,
+timed out, failed, or returns an invalid result, the controller attempts the
+local offline fallback when fallback is allowed.
+
+Some public LibreTranslate instances require an API key and will return an
+error like "get an API key" without one. If you are using the official managed
+endpoint, set `LIBRETRANSLATE_URL` to the `/translate` endpoint and provide an
+API key through `LIBRETRANSLATE_API_KEY`.
+
+## Local Translation Fallback Is Unavailable
+
+The Argos Translate fallback is loaded lazily. If the package, installed
+languages, or direction model is missing, Phase 7 returns a structured
+`OFFLINE_TRANSLATION_UNAVAILABLE` result instead of crashing. Install the local
+Argos package and Arabic/English translation packages before relying on offline
+translation.
+
+## Translation Timed Out Or Returned An Invalid Result
+
+Timeouts, malformed online responses, empty translated text, wrong-language
+output, and unchanged non-no-op output are not accepted as successful
+translations. Phase 7 falls back locally when possible, then returns
+user-safe recovery guidance if no allowed provider succeeds.
+
+## All Translation Providers Failed
+
+If every allowed translation provider fails or returns invalid output, Phase 7
+returns `ALL_TRANSLATION_PROVIDERS_FAILED`. Try again with a clearer language
+direction, allow offline fallback, or check that local translation resources are
+installed.
+
+## Online Voice Command Recognition Is Unavailable
+
+Phase 8 uses online speech recognition only when allowed and configured. If the
+online path is disabled, unavailable, timed out, failed, or produced no
+supported command, the assistant attempts local fixed-command recognition when
+that fallback is allowed.
+
+## Local Vosk Command Recognition Is Unavailable
+
+The local Vosk command recognizer is loaded lazily. If the package or model is
+missing, Phase 8 returns `LOCAL_STT_UNAVAILABLE` instead of crashing. Install
+the local Vosk package and fixed-command model resources before relying on
+offline voice commands.
+
+## Voice Command Was Not Recognized
+
+Unknown, low-confidence, or no-supported-command phrases return spoken guidance
+instead of routing an action. Use short fixed commands such as read text, stop,
+continue, repeat sentence, repeat paragraph, translate to Arabic, translate to
+English, or help.
+
+## Voice Translation Says There Is No Text
+
+Phase 8 translation commands use the latest clean text only. If no clean text is
+available, the command returns guidance instead of translating raw OCR text or
+stale content. Run the OCR and cleanup flow first, then ask to translate to
+Arabic or English.
+
+## Voice Translation Is Unavailable
+
+The command system does not perform translation itself. It calls an injected
+Phase 7 translation controller when available. If that boundary is missing or
+returns a failure, Phase 8 returns structured guidance without calling camera,
+OCR, image processing, cleanup, or the TTS engine directly.
+
+## Help Command Does Not Start An Action
+
+That is expected. The help command only returns examples of supported fixed
+commands and must not trigger reading, translation, capture, OCR, cleanup, or
+workflow orchestration.
+
+## All Command Recognizers Failed
+
+If online and local command recognition both fail, Phase 8 returns
+`ALL_RECOGNIZERS_FAILED` with recovery guidance. Try again with one short
+supported command, or check the local command recognition setup.
+
+## Phase 9 Workflow Is Busy
+
+If another read command is spoken while capture, OCR, cleanup, or reading
+startup is already active, the assistant keeps the active workflow and returns
+busy guidance. Wait for the current workflow to finish, use playback controls,
+or stop the running process through the service or test harness if operational
+shutdown is needed.
+
+## Phase 9 Recapture Guidance
+
+If every frame in the bounded capture burst is rejected, the assistant ends the
+read attempt and asks for a clearer recapture. It does not automatically loop
+captures. Improve lighting, hold the camera steady, point toward printed text,
+and issue another read command.
+
+## Phase 9 OCR Or Cleanup Failure
+
+If OCR fails, all OCR engines return weak text, or cleanup produces empty text,
+the assistant preserves the previous successful clean text and explains the
+failure aloud. Retry with a clearer document position or use translation and
+playback controls against the previous successful text when appropriate.
+
+## Phase 9 Translation Or Speech Failure
+
+If translation or reading output fails, the assistant reports the failure and
+keeps the session responsive. The latest successful clean text and latest
+successful translation remain in memory until replaced by a later success or
+cleared by shutdown.
+
+## Phase 9 Boundary Is Unavailable
+
+If command handling, camera capture, OCR, cleanup, translation, or reading has
+not been wired into the workflow, Phase 9 returns unavailable guidance instead
+of importing or starting a live engine directly. In automated tests, provide
+mocked boundaries. In manual runs, wire the existing earlier-phase controllers
+before expecting live camera, OCR, translation, or speech behavior.
+
+## Phase 9 Timeout Or Unexpected Failure
+
+Camera, OCR, translation, and speech timeouts are treated as recoverable
+workflow failures. Unexpected component failures are converted to safe guidance
+without exposing captured text, translated text, command transcripts, images,
+or snippets in default logs.
+
+## Phase 9 Operational Shutdown
+
+Use process interruption, service stop, or the test-harness shutdown entrypoint
+for operational shutdown. Voice stop is intentionally only a playback control.
+Shutdown stops active speech when possible, runs cleanup hooks, clears volatile
+text state, and blocks new workflow work.
+
+## Phase 11 Deployment Diagnostics
+
+Run `python scripts/pi_deployment_check.py --full --skip-hardware` on a
+development machine, or remove `--skip-hardware` on the Raspberry Pi after
+camera, speaker, and microphone are connected. Reports are local privacy-safe
+summaries only.
+
+Lightweight startup checks report one of four non-visual states:
+
+- Ready: startup checks passed.
+- Degraded: the assistant can continue with reduced capability, such as no
+  internet while local fallback is available.
+- Blocked: a required dependency or folder must be fixed before normal use.
+- Manual Verification Needed: automated checks cannot prove the condition.
+
+If internet is unavailable at startup, the assistant reports degraded offline
+mode instead of failing when local reading fallback is available. Reconnect the
+network to restore online-first services.
+
+Full diagnostics add camera, speaker, microphone, and local OCR fallback checks.
+Depth-capable camera readiness is Ready when RGB and depth can be verified.
+RGB-only camera operation is Degraded, not failed, when capture can still
+continue. Speaker and microphone checks may return Manual Verification Needed
+because audibility and command quality must be confirmed on the real device.
+Preferred offline OCR is checked without eager startup model loading; emergency
+Tesseract readiness verifies executable and Arabic/English language data.
+
+For intermittent networks, deployment diagnostics distinguish three cases:
+no-internet startup, temporary outage during use, and restored connectivity.
+No-internet startup is Degraded when local OCR and speech fallback can continue.
+Temporary outage should trigger a spoken local-fallback explanation. Restored
+connectivity is checked for later workflows so online-first services can return
+without restarting the assistant.
+
+Manual startup uses `scripts/run_assistant.sh`, which installs signal traps and
+forwards stop requests to `main.py`. The optional systemd template in
+`deploy/blind-ocr-assistant.service.template` is disabled by default; copy and
+enable it only after full diagnostics and privacy checks are accepted. Use
+normal systemd `status`, `stop`, and `disable` commands when service mode is
+intentionally enabled. Normal logs are checked against a 50 MB budget and old
+normal log files should be pruned before debug captures or private artifacts are
+touched.
+
+### Manual Raspberry Pi Hardware Acceptance
+
+Before handing the device to a user, run these checks on the target Raspberry Pi:
+
+- Start with `scripts/run_assistant.sh` and confirm spoken startup readiness.
+- Run `python scripts/pi_deployment_check.py --full` with camera, speaker, and
+  microphone connected.
+- Confirm RGB capture and depth status, accepting RGB-only as Degraded when
+  reading can continue.
+- Confirm speaker output is audible and microphone commands are recognized.
+- Disconnect internet and confirm Degraded offline startup with local fallback.
+- Restore internet and confirm later diagnostics can detect restored
+  connectivity.
+- Stop and restart the assistant repeatedly and confirm camera/audio resources
+  are released.
+- Confirm normal logs remain under the 50 MB default budget.
+- Review reports and logs for privacy-safe summaries only.
+## Phase 10 Benchmarking
+
+Dataset issues:
+
+- If `benchmark dataset manifest missing` appears, pass an explicit local
+  `--dataset` path such as `tests/benchmark/manifest.json`.
+- If coverage validation fails, confirm the manifest includes at least 12 safe
+  samples and labels for Arabic, English, mixed text, book page, printed
+  document, medicine package, receipt, sign, low light, angled image, far image,
+  and blurry image.
+- If expected-text validation fails, add safe expected text for every
+  normal-quality Arabic, English, and mixed sample and at least half of
+  difficult samples.
+
+Engine availability:
+
+- `online_unavailable` means the online path was requested but no live adapter
+  was provided or configured for that benchmark run.
+- `online_disabled` is expected when `--offline` is used with an online path.
+- `engine_unavailable` means a local path such as PaddleOCR, Tesseract, or the
+  cascade was requested without an injected/live adapter.
+
+Result retention:
+
+- Benchmark runs write timestamped directories under `benchmark_results/`.
+- Existing result directories are not overwritten. Remove old local output
+  directories manually only when they are no longer needed.
+
+Optional live dependencies:
+
+- Automated tests use mocked OCR boundaries and safe fixtures.
+- Live OCR.space, PaddleOCR, and Tesseract checks remain optional maintainer
+  workflows and should not be required for normal unit validation.
