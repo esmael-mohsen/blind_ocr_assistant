@@ -44,7 +44,33 @@ def test_start_reading_preserves_mixed_logical_order() -> None:
     result = controller.start_reading(text, language="mixed")
 
     assert result.success is True
+    assert "Take one tablet daily." in engine.spoken_requests[0].text
+    assert engine.spoken_requests[0].language == "en"
+    assert engine.spoken_requests[1].language == "ar"
+
+
+def test_start_reading_mixed_text_even_when_detected_as_english() -> None:
+    engine = MockTTSEngine()
+    controller = ReadingController(engine=engine)
+    text = "TOTAL PLUS\nجرعة يومية"
+
+    result = controller.start_reading(text, language="en")
+
+    assert result.success is True
+    assert [request.language for request in engine.spoken_requests] == ["en", "ar"]
+
+
+def test_arabic_reading_with_english_abbreviations_uses_one_arabic_tts_request() -> None:
+    engine = MockTTSEngine()
+    controller = ReadingController(engine=engine)
+    text = "هذا شرح عن IR و NLP في المحاضرة."
+
+    result = controller.start_reading(text, language="ar")
+
+    assert result.success is True
+    assert len(engine.spoken_requests) == 1
     assert engine.spoken_requests[0].text == text
+    assert engine.spoken_requests[0].language == "ar"
 
 
 def test_start_reading_empty_text_returns_guidance_without_engine_call() -> None:

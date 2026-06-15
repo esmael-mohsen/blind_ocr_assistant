@@ -251,6 +251,7 @@ def run_ocr_cascade(
     request: OCRCascadeRequest,
     engines: dict[str, Any],
     online_status_provider: Any | None = None,
+    preferred_online_engine: str = "online",
 ) -> OCRCascadeResult:
     """Run the Phase 4 OCR cascade using injected OCR engines."""
     if not request.image_ready_for_ocr:
@@ -272,12 +273,17 @@ def run_ocr_cascade(
             guidance=error.guidance,
         )
 
-    route, offline_route_used, online_skip_error = _planned_route(request, online_status_provider)
+    online_key = _online_key(engines, preferred_online_engine)
+    route, offline_route_used, online_skip_error = _planned_route(
+        request,
+        online_status_provider,
+        online_key=online_key,
+    )
     attempts: list[OCRAttempt] = []
     if online_skip_error is not None:
         attempts.append(
             OCRAttempt(
-                engine_name=_engine_name(_resolve_engine(engines, "online"), "ocr_space"),
+                engine_name=_engine_name(_resolve_engine(engines, online_key), online_key),
                 attempt_order=0,
                 status=AttemptStatus.SKIPPED,
                 error_code=online_skip_error,
@@ -292,6 +298,7 @@ def run_ocr_cascade(
             route=route,
             attempts=attempts,
             offline_route_used=offline_route_used,
+            online_key=online_key,
         )
 
     return _run_normal_route(
@@ -344,8 +351,9 @@ def _run_high_accuracy_route(
     route: tuple[str, ...],
     attempts: list[OCRAttempt],
     offline_route_used: bool,
+    online_key: str,
 ) -> OCRCascadeResult:
-    compared_keys = tuple(key for key in route if key in {"online", "local"})
+    compared_keys = tuple(key for key in route if key in {online_key, "local"})
     emergency_allowed = "emergency" in route
 
     for key in compared_keys:
@@ -395,8 +403,8 @@ def _run_high_accuracy_route(
     )
 
 
-def _normal_route() -> tuple[str, ...]:
-    return ("online", "local", "emergency")
+def _normal_route(online_key: str) -> tuple[str, ...]:
+    return (online_key, "local", "emergency")
 
 
 def _offline_route() -> tuple[str, ...]:
@@ -406,6 +414,8 @@ def _offline_route() -> tuple[str, ...]:
 def _planned_route(
     request: OCRCascadeRequest,
     online_status_provider: Any | None,
+    *,
+    online_key: str,
 ) -> tuple[tuple[str, ...], bool, OCRCascadeErrorCode | None]:
     if not request.allow_online:
         return (
@@ -423,8 +433,8 @@ def _planned_route(
         )
 
     if not request.allow_offline:
-        return ("online",), False, None
-    return _normal_route(), False, None
+        return (online_key,), False, None
+    return _normal_route(online_key), False, None
 
 
 def _online_available(
@@ -448,6 +458,7 @@ def _engine_available(engine: Any) -> bool:
 def _resolve_engine(engines: dict[str, Any], key: str) -> Any | None:
     aliases = {
         "online": ("online", "ocr_space", "ocrspace"),
+        "gemini": ("gemini", "online"),
         "local": ("local", "paddleocr", "paddle"),
         "emergency": ("emergency", "tesseract"),
     }
@@ -545,7 +556,7 @@ def _error_code_for_attempt(
 
 
 def _unavailable_error_for_key(key: str) -> OCRCascadeErrorCode:
-    if key == "online":
+    if key in {"online", "gemini"}:
         return OCRCascadeErrorCode.ONLINE_OCR_UNAVAILABLE
     if key == "local":
         return OCRCascadeErrorCode.LOCAL_OCR_UNAVAILABLE
@@ -577,6 +588,15 @@ def _select_high_accuracy_attempt(attempts: list[OCRAttempt]) -> OCRAttempt:
     if local_attempts:
         return min(local_attempts, key=lambda attempt: attempt.duration_ms)
     return min(similar, key=lambda attempt: attempt.duration_ms)
+
+
+def _online_key(engines: dict[str, Any], preferred_online_engine: str) -> str:
+    preferred = (preferred_online_engine or "online").strip() or "online"
+    if preferred in engines:
+        return preferred
+    if "online" in engines:
+        return "online"
+    return preferred
 
 
 def _success_result(

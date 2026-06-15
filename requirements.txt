@@ -13,7 +13,13 @@ paddlepaddle>=3.3
 
 # Optional offline voice command and translation fallbacks
 vosk>=0.3.45
+sounddevice>=0.5
 argostranslate>=1.11
+SpeechRecognition>=3.10
+edge-tts>=7.0
+
+# Online translation providers (Phase 7)
+deep-translator>=1.11
 
 # Optional development quality tools
 ruff>=0.4

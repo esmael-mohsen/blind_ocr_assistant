@@ -1,0 +1,26 @@
+{
+  "checks": [
+    {
+      "check_id": "network.online_optional",
+      "dependency_area": "network",
+      "message": "Online services are unavailable; local fallback remains ready.",
+      "remediation": "Connect internet to use online-first services.",
+      "required_for_startup": false,
+      "safe_metadata": {},
+      "status": "degraded"
+    }
+  ],
+  "created_at": "2026-05-20T15:25:03.155066+00:00",
+  "overall_status": "degraded",
+  "privacy_summary": {
+    "contains_ocr_text": false,
+    "contains_private_debug_paths": false,
+    "contains_secrets": false,
+    "contains_translations": false,
+    "contains_user_images": false
+  },
+  "recommended_actions": [],
+  "report_id": "phase11-test",
+  "startup_mode": "manual",
+  "target_device": "Raspberry Pi 4"
+}

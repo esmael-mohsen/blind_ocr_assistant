@@ -283,7 +283,12 @@ def test_cleanup_empty_text_and_tts_failure_return_structured_guidance():
     workflow.reading_controller = ReadingStub(success=False)
 
     tts_result = workflow.run_read_workflow()
-    assert tts_result.error.code == WorkflowErrorCode.TTS_FAILED
+    assert tts_result.success is True
+    assert tts_result.ocr_success is True
+    assert tts_result.reading_started is False
+    assert tts_result.selected_ocr_engine == "ocr_space"
+    assert workflow.get_state().last_clean_text == "clean"
+    assert "speech" in tts_result.guidance.lower()
 
 
 def test_component_timeout_and_unexpected_exception_keep_previous_state():

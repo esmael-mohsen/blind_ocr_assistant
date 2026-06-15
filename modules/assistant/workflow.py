@@ -41,7 +41,13 @@ class AssistantWorkflow:
         """Return current assistant workflow state."""
         return self.session.state
 
-    def handle_command(self, phrase: str, language_hint: str = "unknown") -> Any:
+    def handle_command(
+        self,
+        phrase: str,
+        language_hint: str = "unknown",
+        *,
+        high_accuracy: bool = False,
+    ) -> Any:
         """Recognize a command and route supported Phase 9 workflow intents."""
         if self.dialogue_manager is None:
             return self._missing_boundary(
@@ -67,7 +73,7 @@ class AssistantWorkflow:
         if not getattr(result, "success", False):
             return result
         if getattr(result, "intent", None) == CommandIntent.READ:
-            return self.run_read_workflow()
+            return self.run_read_workflow(high_accuracy=high_accuracy)
         if getattr(result, "intent", None) in {
             CommandIntent.TRANSLATE_TO_ARABIC,
             CommandIntent.TRANSLATE_TO_ENGLISH,
@@ -76,10 +82,33 @@ class AssistantWorkflow:
             if target_language is None:
                 target_language = (
                     "ar"
-                    if getattr(result, "intent", None) == CommandIntent.TRANSLATE_TO_ARABIC
+                    if getattr(result, "intent", None)
+                    == CommandIntent.TRANSLATE_TO_ARABIC
                     else "en"
                 )
             return self.run_translation_workflow(target_language)
+        if getattr(result, "intent", None) == CommandIntent.STOP:
+            return (
+                self._run_reading_control("stop") if self.reading_controller else result
+            )
+        if getattr(result, "intent", None) == CommandIntent.CONTINUE:
+            return (
+                self._run_reading_control("continue_reading")
+                if self.reading_controller
+                else result
+            )
+        if getattr(result, "intent", None) == CommandIntent.REPEAT_SENTENCE:
+            return (
+                self._run_reading_control("repeat_last_sentence")
+                if self.reading_controller
+                else result
+            )
+        if getattr(result, "intent", None) == CommandIntent.REPEAT_PARAGRAPH:
+            return (
+                self._run_reading_control("repeat_last_paragraph")
+                if self.reading_controller
+                else result
+            )
         return result
 
     def run_read_workflow(self, *, high_accuracy: bool = False) -> ReadWorkflowResult:
@@ -217,7 +246,9 @@ class AssistantWorkflow:
                     )
                 )
 
-            language = self._language_value(getattr(cleanup_result, "language", "unknown"))
+            language = self._language_value(
+                getattr(cleanup_result, "language", "unknown")
+            )
             speech_result = self._call_boundary(
                 self.reading_controller.start_reading,
                 clean_text,
@@ -229,25 +260,28 @@ class AssistantWorkflow:
             )
             if isinstance(speech_result, ReadWorkflowResult):
                 return self._record_read_failure(speech_result)
-            if not getattr(speech_result, "success", False):
-                return self._record_read_failure(
-                    self._failure_result(
-                        WorkflowErrorCode.TTS_FAILED,
-                        "TTS failed.",
-                        getattr(speech_result, "guidance", "")
-                        or "Reading could not start.",
-                        source="tts",
-                    )
-                )
+            speech_success = bool(getattr(speech_result, "success", False))
 
             duration_ms = self._duration_ms(start)
-            guidance = self._read_success_guidance(ocr_result)
+            guidance = (
+                self._read_success_guidance(ocr_result)
+                if speech_success
+                else (
+                    "Text was read successfully, but speech playback failed. "
+                    "You can retry reading or change the speech engine."
+                )
+            )
             result = ReadWorkflowResult.ok(
                 selected_ocr_engine=selected_engine or "unknown",
                 language=language,
+                reading_started=speech_success,
                 fallback_used=bool(getattr(ocr_result, "fallback_used", False)),
-                offline_route_used=bool(getattr(ocr_result, "offline_route_used", False)),
-                high_accuracy_used=bool(getattr(ocr_result, "high_accuracy_used", high_accuracy)),
+                offline_route_used=bool(
+                    getattr(ocr_result, "offline_route_used", False)
+                ),
+                high_accuracy_used=bool(
+                    getattr(ocr_result, "high_accuracy_used", high_accuracy)
+                ),
                 duration_ms=duration_ms,
                 guidance=guidance,
                 raw_text=raw_text,
@@ -272,7 +306,9 @@ class AssistantWorkflow:
             if not self.session.shutdown_requested and self.session.workflow_active:
                 self.session = self.session.with_updates(workflow_active=False)
 
-    def run_translation_workflow(self, target_language: str) -> TranslationWorkflowResult:
+    def run_translation_workflow(
+        self, target_language: str
+    ) -> TranslationWorkflowResult:
         """Translate latest clean text through the injected translation boundary."""
         if self.session.shutdown_requested:
             failure = WorkflowFailure(
@@ -330,6 +366,10 @@ class AssistantWorkflow:
             return result
 
         start = self.clock()
+        source_language, explicit_source_language = _translation_source_for_target(
+            self.session.state.last_language,
+            target_language,
+        )
         self.session = self.session.with_updates(
             state=self.session.state.with_updates(
                 current_mode=WorkflowMode.TRANSLATING,
@@ -340,7 +380,8 @@ class AssistantWorkflow:
             self.translation_controller.translate_latest,
             clean_text,
             target_language,
-            source_language=self.session.state.last_language,
+            source_language=source_language,
+            explicit_source_language=explicit_source_language,
             allow_online=True,
             allow_offline=True,
             failure_code=WorkflowErrorCode.TRANSLATION_FAILED,
@@ -357,7 +398,7 @@ class AssistantWorkflow:
             )
             result = TranslationWorkflowResult.failure(
                 target_language=target_language,
-                source_language=self.session.state.last_language,
+                source_language=source_language,
                 error=failure,
                 guidance=translation_result.guidance,
                 duration_ms=translation_result.duration_ms,
@@ -378,7 +419,7 @@ class AssistantWorkflow:
             )
             result = TranslationWorkflowResult.failure(
                 target_language=target_language,
-                source_language=self.session.state.last_language,
+                source_language=source_language,
                 error=failure,
                 fallback_used=bool(getattr(translation_result, "fallback_used", False)),
                 duration_ms=self._duration_ms(start),
@@ -391,11 +432,13 @@ class AssistantWorkflow:
 
         translated_text = getattr(translation_result, "translated_text", "")
         result = TranslationWorkflowResult.ok(
-            target_language=getattr(translation_result, "target_language", target_language),
+            target_language=getattr(
+                translation_result, "target_language", target_language
+            ),
             source_language=getattr(
                 translation_result,
                 "source_language",
-                self.session.state.last_language,
+                source_language,
             ),
             translated_text=translated_text,
             fallback_used=bool(getattr(translation_result, "fallback_used", False)),
@@ -459,6 +502,22 @@ class AssistantWorkflow:
         )
         self.session = self.session.with_updates(last_result=result)
         return result
+
+    def _run_reading_control(self, method_name: str) -> Any:
+        method = getattr(self.reading_controller, method_name, None)
+        if not callable(method):
+            return self._missing_boundary(
+                code=WorkflowErrorCode.TTS_UNAVAILABLE,
+                guidance="There is no reading to control.",
+                source="tts",
+            )
+        return self._call_boundary(
+            method,
+            failure_code=WorkflowErrorCode.TTS_FAILED,
+            failure_guidance="The reading command could not be completed.",
+            failure_message="Reading control failed",
+            source="tts",
+        )
 
     def _read_guard(self) -> ReadWorkflowResult | None:
         if self.session.shutdown_requested:
@@ -538,9 +597,24 @@ class AssistantWorkflow:
 
     def _first_missing_read_boundary(self) -> ReadWorkflowResult | None:
         required = (
-            (self.capture_burst, WorkflowErrorCode.CAMERA_UNAVAILABLE, "Camera is unavailable.", "camera"),
-            (self.run_ocr_cascade, WorkflowErrorCode.OCR_FAILED, "OCR is unavailable.", "ocr"),
-            (self.clean_ocr_text, WorkflowErrorCode.CLEANUP_EMPTY_TEXT, "Text cleanup is unavailable.", "cleanup"),
+            (
+                self.capture_burst,
+                WorkflowErrorCode.CAMERA_UNAVAILABLE,
+                "Camera is unavailable.",
+                "camera",
+            ),
+            (
+                self.run_ocr_cascade,
+                WorkflowErrorCode.OCR_FAILED,
+                "OCR is unavailable.",
+                "ocr",
+            ),
+            (
+                self.clean_ocr_text,
+                WorkflowErrorCode.CLEANUP_EMPTY_TEXT,
+                "Text cleanup is unavailable.",
+                "cleanup",
+            ),
             (
                 getattr(self.reading_controller, "start_reading", None),
                 WorkflowErrorCode.TTS_UNAVAILABLE,
@@ -550,7 +624,9 @@ class AssistantWorkflow:
         )
         for boundary, code, guidance, source in required:
             if boundary is None:
-                return self._missing_boundary(code=code, guidance=guidance, source=source)
+                return self._missing_boundary(
+                    code=code, guidance=guidance, source=source
+                )
         return None
 
     def _record_read_failure(self, result: ReadWorkflowResult) -> ReadWorkflowResult:
@@ -571,13 +647,15 @@ class AssistantWorkflow:
     ) -> ReadWorkflowResult:
         return ReadWorkflowResult.failure(
             error=WorkflowFailure(code, message, guidance, source=source),
-            status=WorkflowStatus.UNAVAILABLE
-            if code
-            in {
-                WorkflowErrorCode.CAMERA_UNAVAILABLE,
-                WorkflowErrorCode.TTS_UNAVAILABLE,
-            }
-            else WorkflowStatus.FAILED,
+            status=(
+                WorkflowStatus.UNAVAILABLE
+                if code
+                in {
+                    WorkflowErrorCode.CAMERA_UNAVAILABLE,
+                    WorkflowErrorCode.TTS_UNAVAILABLE,
+                }
+                else WorkflowStatus.FAILED
+            ),
         )
 
     @staticmethod
@@ -617,6 +695,21 @@ class AssistantWorkflow:
         if str(raw) == "CAMERA_CAPTURE_TIMEOUT":
             return WorkflowErrorCode.CAPTURE_TIMEOUT
         return WorkflowErrorCode.CAMERA_UNAVAILABLE
+
+
+def _translation_source_for_target(
+    last_language: str,
+    target_language: str,
+) -> tuple[str, bool]:
+    source = AssistantWorkflow._language_value(last_language)
+    target = AssistantWorkflow._language_value(target_language)
+    if source in {"ar", "en"}:
+        return source, False
+    if target == "ar":
+        return "en", True
+    if target == "en":
+        return "ar", True
+    return source, False
 
 
 __all__ = [

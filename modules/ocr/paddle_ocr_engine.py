@@ -49,7 +49,7 @@ class PaddleOCREngine(OCRBaseEngine):
 
         try:
             model = self._load_model()
-            raw_result = model.ocr(image_result, cls=True)
+            raw_result = self._run_model(model, image_result)
         except Exception as exc:
             return self.failure(
                 OCRErrorCode.OCR_MODEL_LOAD_ERROR,
@@ -73,8 +73,21 @@ class PaddleOCREngine(OCRBaseEngine):
 
         from paddleocr import PaddleOCR  # type: ignore
 
-        self._model = PaddleOCR(use_textline_orientation=True, lang="ar")
+        self._model = PaddleOCR(
+            lang="ar",
+            use_doc_orientation_classify=False,
+            use_doc_unwarping=False,
+            use_textline_orientation=False,
+            enable_mkldnn=False,
+        )
         return self._model
+
+    @staticmethod
+    def _run_model(model: Any, image_result: bytes | str) -> Any:
+        predict = getattr(model, "predict", None)
+        if callable(predict):
+            return predict(image_result)
+        return model.ocr(image_result, cls=True)
 
     def _read_image(
         self, request: OCRRequest, started: float
@@ -94,6 +107,10 @@ class PaddleOCREngine(OCRBaseEngine):
     def _extract_text(raw_result: Any) -> tuple[str, float | None]:
         texts: list[str] = []
         confidences: list[float] = []
+        PaddleOCREngine._collect_paddle_v3_text(raw_result, texts, confidences)
+        if texts:
+            confidence = sum(confidences) / len(confidences) if confidences else None
+            return "\n".join(texts), confidence
         for page in raw_result or []:
             for item in page or []:
                 if len(item) < 2:
@@ -108,3 +125,36 @@ class PaddleOCREngine(OCRBaseEngine):
                             pass
         confidence = sum(confidences) / len(confidences) if confidences else None
         return "\n".join(texts), confidence
+
+    @staticmethod
+    def _collect_paddle_v3_text(
+        raw_result: Any,
+        texts: list[str],
+        confidences: list[float],
+    ) -> None:
+        if raw_result is None:
+            return
+        if isinstance(raw_result, dict):
+            payload = raw_result.get("res", raw_result)
+            rec_texts = payload.get("rec_texts")
+            if isinstance(rec_texts, list):
+                texts.extend(str(text) for text in rec_texts if str(text).strip())
+            rec_scores = payload.get("rec_scores")
+            if isinstance(rec_scores, list):
+                for score in rec_scores:
+                    try:
+                        confidences.append(float(score))
+                    except (TypeError, ValueError):
+                        pass
+            return
+        result_json = getattr(raw_result, "json", None)
+        if isinstance(result_json, dict):
+            PaddleOCREngine._collect_paddle_v3_text(result_json, texts, confidences)
+            return
+        to_json = getattr(raw_result, "to_json", None)
+        if callable(to_json):
+            PaddleOCREngine._collect_paddle_v3_text(to_json(), texts, confidences)
+            return
+        if isinstance(raw_result, list):
+            for item in raw_result:
+                PaddleOCREngine._collect_paddle_v3_text(item, texts, confidences)

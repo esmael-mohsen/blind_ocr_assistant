@@ -1,0 +1,76 @@
+{
+  "best_paths_by_scenario": {
+    "book_page": "cascade",
+    "normal_quality": "cascade",
+    "printed_document": "paddleocr"
+  },
+  "dataset_id": "phase10-controlled",
+  "known_failure_count": 1,
+  "language_counts": {
+    "ar": {
+      "success": 1
+    },
+    "en": {
+      "failed": 1
+    }
+  },
+  "per_engine_duration_ms": {
+    "cascade": {
+      "average": 5.0,
+      "count": 1.0,
+      "max": 5.0,
+      "min": 5.0
+    },
+    "paddleocr": {
+      "average": 2.0,
+      "count": 1.0,
+      "max": 2.0,
+      "min": 2.0
+    }
+  },
+  "per_engine_quality": {
+    "cascade": {
+      "average": 0.9,
+      "count": 1.0,
+      "max": 0.9,
+      "min": 0.9
+    }
+  },
+  "per_engine_success_counts": {
+    "cascade": {
+      "success": 1
+    },
+    "paddleocr": {
+      "failed": 1
+    }
+  },
+  "privacy": {
+    "contains_clean_text": false,
+    "contains_image_payloads": false,
+    "contains_raw_text": false,
+    "contains_secrets": false,
+    "contains_translated_text": false
+  },
+  "result_count": 2,
+  "run_id": "20260520-152500-906572-89ddf343-phase10",
+  "sample_count": 12,
+  "scenario_counts": {
+    "book_page": {
+      "success": 1
+    },
+    "normal_quality": {
+      "failed": 1,
+      "success": 1
+    },
+    "printed_document": {
+      "failed": 1
+    }
+  },
+  "status": "partial",
+  "status_counts": {
+    "failed": 1,
+    "success": 1
+  },
+  "tuning_recommendations": [],
+  "unavailable_path_counts": {}
+}

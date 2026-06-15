@@ -82,6 +82,46 @@ def test_good_online_result_is_accepted_without_fallback() -> None:
     assert engines["emergency"].calls == 0
 
 
+def test_gemini_primary_result_is_accepted_before_local_fallbacks() -> None:
+    engines = {
+        "gemini": FakeEngine("gemini", [_success("gemini", "Arabic text is readable")]),
+        "local": FakeEngine("paddleocr", [_success("paddleocr")]),
+        "emergency": FakeEngine("tesseract", [_success("tesseract")]),
+    }
+
+    result = run_ocr_cascade(
+        OCRCascadeRequest(image=b"image"),
+        engines,
+        preferred_online_engine="gemini",
+    )
+
+    assert result.success is True
+    assert result.selected_engine == "gemini"
+    assert result.fallback_used is False
+    assert engines["gemini"].calls == 1
+    assert engines["local"].calls == 0
+    assert engines["emergency"].calls == 0
+
+
+def test_weak_gemini_result_triggers_local_accuracy_fallback() -> None:
+    engines = {
+        "gemini": FakeEngine("gemini", [_success("gemini", "A")]),
+        "local": FakeEngine("paddleocr", [_success("paddleocr", "Local result is readable")]),
+        "emergency": FakeEngine("tesseract", [_success("tesseract")]),
+    }
+
+    result = run_ocr_cascade(
+        OCRCascadeRequest(image=b"image"),
+        engines,
+        preferred_online_engine="gemini",
+    )
+
+    assert result.success is True
+    assert result.selected_engine == "paddleocr"
+    assert result.fallback_used is True
+    assert [attempt.engine_name for attempt in result.attempts] == ["gemini", "paddleocr"]
+
+
 def test_weak_online_result_triggers_local_accuracy_fallback() -> None:
     engines = _engines(
         _success("ocr_space", "A"),

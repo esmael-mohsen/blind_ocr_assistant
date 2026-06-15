@@ -29,6 +29,7 @@ class DialogueManager:
     local_recognizer: object | None = None
     latest_clean_text: str = ""
     latest_language: str = "mixed"
+    route_immediately: bool = True
     state: DialogueState = field(default_factory=DialogueState)
 
     def get_state(self) -> DialogueState:
@@ -50,12 +51,14 @@ class DialogueManager:
             allow_local=allow_local,
         )
         result = self._recognize(request)
-        routed = self._route_result(result)
+        routed = self._route_result(result) if self.route_immediately else result
         self.state = self.state.with_result(routed)
         return routed
 
     def _recognize(self, request: CommandRequest) -> CommandResult:
-        has_recognizers = self.online_recognizer is not None or self.local_recognizer is not None
+        has_recognizers = (
+            self.online_recognizer is not None or self.local_recognizer is not None
+        )
         if not has_recognizers:
             return self.parser.parse(request)
 
@@ -77,9 +80,9 @@ class DialogueManager:
             )
 
         if request.allow_local and self.local_recognizer is not None:
-            local_result = recognize_safely(self.local_recognizer, request).with_updates(
-                fallback_used=True
-            )
+            local_result = recognize_safely(
+                self.local_recognizer, request
+            ).with_updates(fallback_used=True)
             if local_result.success:
                 return local_result
             if online_result is not None:
@@ -223,9 +226,7 @@ class DialogueManager:
         target_language = result.target_language
         if target_language is None:
             target_language = (
-                "ar"
-                if result.intent == CommandIntent.TRANSLATE_TO_ARABIC
-                else "en"
+                "ar" if result.intent == CommandIntent.TRANSLATE_TO_ARABIC else "en"
             )
         try:
             translation_result = self.translation_controller.translate_latest(

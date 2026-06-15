@@ -1,0 +1,96 @@
+{
+  "best_paths_by_scenario": {
+    "angled_image": "cascade",
+    "blurry_image": "cascade",
+    "book_page": "cascade",
+    "far_image": "cascade",
+    "low_light": "cascade",
+    "medicine_package": "cascade",
+    "normal_quality": "cascade",
+    "printed_document": "cascade",
+    "receipt": "cascade",
+    "sign": "cascade"
+  },
+  "dataset_id": "phase10-controlled",
+  "known_failure_count": 0,
+  "language_counts": {
+    "ar": {
+      "success": 3
+    },
+    "en": {
+      "success": 5
+    },
+    "mixed": {
+      "success": 4
+    }
+  },
+  "per_engine_duration_ms": {
+    "cascade": {
+      "average": 5.0,
+      "count": 12.0,
+      "max": 5.0,
+      "min": 5.0
+    }
+  },
+  "per_engine_quality": {
+    "cascade": {
+      "average": 0.9,
+      "count": 12.0,
+      "max": 0.9,
+      "min": 0.9
+    }
+  },
+  "per_engine_success_counts": {
+    "cascade": {
+      "success": 12
+    }
+  },
+  "privacy": {
+    "contains_clean_text": false,
+    "contains_image_payloads": false,
+    "contains_raw_text": false,
+    "contains_secrets": false,
+    "contains_translated_text": false
+  },
+  "result_count": 12,
+  "run_id": "20260520-152501-260273-baf16bdb-phase10",
+  "sample_count": 12,
+  "scenario_counts": {
+    "angled_image": {
+      "success": 1
+    },
+    "blurry_image": {
+      "success": 2
+    },
+    "book_page": {
+      "success": 2
+    },
+    "far_image": {
+      "success": 2
+    },
+    "low_light": {
+      "success": 2
+    },
+    "medicine_package": {
+      "success": 2
+    },
+    "normal_quality": {
+      "success": 5
+    },
+    "printed_document": {
+      "success": 3
+    },
+    "receipt": {
+      "success": 2
+    },
+    "sign": {
+      "success": 3
+    }
+  },
+  "status": "success",
+  "status_counts": {
+    "success": 12
+  },
+  "tuning_recommendations": [],
+  "unavailable_path_counts": {}
+}

@@ -180,6 +180,7 @@ class TranslationResult:
     error: TranslationError | None = None
     guidance: str = ""
     operation: TranslationOperation = TranslationOperation.TRANSLATE
+    provider_metadata: dict[str, Any] = field(default_factory=dict)
     safe_metadata: dict[str, Any] = field(init=False)
 
     def __post_init__(self) -> None:
@@ -208,6 +209,7 @@ class TranslationResult:
                     "reading_handoff_success": self.reading_handoff_success,
                     "error_code": self.error.code if self.error else None,
                     "operation": self.operation,
+                    **self.provider_metadata,
                 }
             ),
         )
@@ -227,6 +229,7 @@ class TranslationResult:
         reading_handoff_attempted: bool = False,
         reading_handoff_success: bool = False,
         guidance: str = "Translation is ready.",
+        provider_metadata: dict[str, Any] | None = None,
     ) -> "TranslationResult":
         return cls(
             success=True,
@@ -241,6 +244,7 @@ class TranslationResult:
             reading_handoff_attempted=reading_handoff_attempted,
             reading_handoff_success=reading_handoff_success,
             guidance=guidance,
+            provider_metadata=provider_metadata or {},
         )
 
     @classmethod
@@ -257,6 +261,7 @@ class TranslationResult:
         duration_ms: int | None = None,
         reading_handoff_attempted: bool = False,
         reading_handoff_success: bool = False,
+        provider_metadata: dict[str, Any] | None = None,
     ) -> "TranslationResult":
         return cls(
             success=False,
@@ -270,6 +275,7 @@ class TranslationResult:
             guidance=guidance,
             reading_handoff_attempted=reading_handoff_attempted,
             reading_handoff_success=reading_handoff_success,
+            provider_metadata=provider_metadata or {},
         )
 
     def with_updates(self, **updates: Any) -> "TranslationResult":

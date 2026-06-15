@@ -1,6 +1,7 @@
 """OCR engine package."""
 
 from modules.ocr.base import OCRBaseEngine, ocr_log_metadata
+from modules.ocr.gemini_ocr_engine import GeminiOCREngine
 from modules.ocr.ocr_cascade import (
     AttemptStatus,
     CascadeRouteMode,
@@ -24,6 +25,7 @@ from modules.ocr.ocr_quality import (
 
 __all__ = [
     "OCRBaseEngine",
+    "GeminiOCREngine",
     "AttemptStatus",
     "CascadeRouteMode",
     "LanguageMixStatus",

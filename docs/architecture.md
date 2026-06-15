@@ -434,3 +434,26 @@ Privacy/resource review:
 - Normal log budgeting defaults to 50 MB and produces prune decisions for normal
   log files only.
 - Service startup remains opt-in and disabled by default.
+
+## Gemini-First OCR Route
+
+The OCR layer includes a Gemini adapter that implements the existing OCR engine
+boundary. It is wired as the preferred online OCR route when
+`ASSISTANT_GEMINI_OCR_ENABLED=true` and `GEMINI_API_KEY` is configured.
+
+OCR routing is Gemini-first for online operation:
+
+- Gemini OCR receives the selected preprocessed image and returns structured
+  `OCRResult` metadata.
+- PaddleOCR remains the local accuracy fallback.
+- Tesseract remains the emergency fallback.
+
+The cascade still owns quality scoring and fallback decisions. Gemini provider
+errors, timeouts, malformed responses, and empty text are converted into stable
+OCR error codes so the workflow can continue locally when configured to do so.
+
+Privacy behavior remains unchanged for logs and reports: image bytes, inline
+Base64 payloads, raw OCR text, cleaned text, prompts, API keys, and private paths
+are excluded from normal operational metadata. The Gemini API receives the image
+for OCR when the route is enabled, so deployment documentation should treat it
+as an online OCR provider rather than a local fallback.

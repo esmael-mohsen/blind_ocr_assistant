@@ -8,7 +8,12 @@ from modules.translation.base import (
     validate_translation_result,
 )
 from modules.translation.argos_fallback import ArgosTranslateFallback
-from modules.translation.libre_translate_client import LibreTranslateClient
+from modules.translation.gemini_translation_engine import GeminiTranslationEngine
+from modules.translation.online_translation_stack import (
+    GoogleTranslatorEngine,
+    MyMemoryTranslatorEngine,
+    OnlineFallbackTranslationEngine,
+)
 from modules.translation.translation_models import (
     TranslationControlRequest,
     TranslationError,
@@ -26,7 +31,10 @@ from modules.translation.translation_models import (
 __all__ = [
     "MockTranslationEngine",
     "ArgosTranslateFallback",
-    "LibreTranslateClient",
+    "GeminiTranslationEngine",
+    "GoogleTranslatorEngine",
+    "MyMemoryTranslatorEngine",
+    "OnlineFallbackTranslationEngine",
     "TranslationControlRequest",
     "TranslationEngine",
     "TranslationError",

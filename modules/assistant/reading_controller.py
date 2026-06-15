@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 import hashlib
+import re
 
 from modules.text.segmentation import split_paragraphs, split_sentences
 from modules.voice.tts_engine import TTSEngine
@@ -92,7 +93,15 @@ class ReadingController:
             segment_type=SegmentType.FULL_TEXT,
             segment_order=0,
         )
-        result = self.engine.speak(request)
+        result = (
+            self._speak_mixed_text(
+                text,
+                base_request=request,
+                rate_wpm=rate,
+            )
+            if _should_speak_as_mixed(text, language)
+            else self.engine.speak(request)
+        )
         if result.success:
             self.state = self.state.with_updates(
                 is_active=True,
@@ -119,6 +128,40 @@ class ReadingController:
             native_pause_active=False,
         )
         return result
+
+    def _speak_mixed_text(
+        self,
+        text: str,
+        *,
+        base_request: SpeechRequest,
+        rate_wpm: int,
+    ) -> SpeechResult:
+        duration = 0
+        fallback_used = False
+        last_engine = getattr(self.engine, "name", None)
+        for index, (segment_text, segment_language) in enumerate(_split_script_runs(text)):
+            request = SpeechRequest(
+                text=segment_text,
+                language=segment_language,
+                rate_wpm=rate_wpm,
+                operation=base_request.operation,
+                segment_id=f"{base_request.segment_id}:part:{index}",
+                segment_type=base_request.segment_type,
+                segment_order=index,
+            )
+            result = self.engine.speak(request)
+            last_engine = result.engine_name
+            fallback_used = fallback_used or bool(result.fallback_used)
+            duration += int(result.duration_ms or 0)
+            if not result.success:
+                return result
+        return SpeechResult.ok(
+            operation=base_request.operation,
+            engine_name=last_engine,
+            duration_ms=duration or None,
+            guidance="Reading started.",
+            fallback_used=fallback_used,
+        )
 
     def stop(self) -> SpeechResult:
         """Stop reading safely whether or not speech is active."""
@@ -359,3 +402,43 @@ class ReadingController:
 __all__ = [
     "ReadingController",
 ]
+
+
+ARABIC_RE = re.compile(r"[\u0600-\u06FF]")
+ENGLISH_RE = re.compile(r"[A-Za-z]")
+
+
+def _should_speak_as_mixed(text: str, language: str) -> bool:
+    normalized = (language or "").lower()
+    if normalized.startswith("ar"):
+        return False
+    if normalized == "mixed":
+        return True
+    return bool(ARABIC_RE.search(text)) and bool(ENGLISH_RE.search(text))
+
+
+def _split_script_runs(text: str) -> list[tuple[str, str]]:
+    runs: list[tuple[str, str]] = []
+    current: list[str] = []
+    current_language = ""
+    for char in text:
+        char_language = _language_for_char(char)
+        if char_language == "neutral":
+            current.append(char)
+            continue
+        if current and current_language and char_language != current_language:
+            runs.append(("".join(current).strip(), current_language))
+            current = []
+        current_language = char_language
+        current.append(char)
+    if current:
+        runs.append(("".join(current).strip(), current_language or "en"))
+    return [(segment, language) for segment, language in runs if segment]
+
+
+def _language_for_char(char: str) -> str:
+    if "\u0600" <= char <= "\u06ff":
+        return "ar"
+    if char.isascii() and char.isalpha():
+        return "en"
+    return "neutral"

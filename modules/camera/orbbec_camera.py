@@ -72,8 +72,14 @@ class GenericRGBCameraSource:
     supports_rgb = True
     supports_depth = False
 
-    def __init__(self, camera_index: int = 0, source_id: str = "opencv-rgb-0") -> None:
+    def __init__(
+        self,
+        camera_index: int = 0,
+        source_id: str = "opencv-rgb-0",
+        camera_source: int | str | None = None,
+    ) -> None:
         self.camera_index = camera_index
+        self.camera_source = camera_index if camera_source is None else camera_source
         self.source_id = source_id
         self._capture: Any | None = None
 
@@ -82,7 +88,7 @@ class GenericRGBCameraSource:
             import cv2
         except ImportError:
             return False
-        self._capture = cv2.VideoCapture(self.camera_index)
+        self._capture = cv2.VideoCapture(self.camera_source)
         return bool(self._capture is not None and self._capture.isOpened())
 
     def capture_frame(self) -> object:

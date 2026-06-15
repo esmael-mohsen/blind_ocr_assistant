@@ -19,7 +19,7 @@ def test_help_command_exits_successfully() -> None:
     result = run_cli("--help")
 
     assert result.returncode == 0
-    assert "Phase 0 bootstrap" in result.stdout
+    assert "Integrated Blind OCR Assistant runtime" in result.stdout
     assert "--self-check" in result.stdout
 
 
@@ -29,4 +29,3 @@ def test_self_check_exits_successfully() -> None:
     assert result.returncode == 0
     assert "Phase 0 self-check: PASS" in result.stdout
     assert "core bootstrap checks passed" in result.stdout
-

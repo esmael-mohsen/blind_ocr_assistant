@@ -39,7 +39,7 @@ def test_phase9_workflow_uses_boundaries_not_concrete_engines():
         "modules.ocr.ocr_cascade",
         "modules.text.cleanup",
         "modules.translation.argos_fallback",
-        "modules.translation.libre_translate_client",
+        "modules.translation.online_translation_stack",
         "modules.voice.stt_online",
         "modules.voice.tts_engine",
         "modules.voice.vosk_fallback",
@@ -49,7 +49,7 @@ def test_phase9_workflow_uses_boundaries_not_concrete_engines():
     assert _imported_modules(MAIN_PATH).isdisjoint(forbidden_imports)
 
 
-def test_phase9_does_not_add_command_categories_or_voice_exit():
+def test_runtime_command_categories_are_explicit_and_bounded():
     assert {intent.value for intent in CommandIntent} == {
         "read",
         "stop",
@@ -59,10 +59,21 @@ def test_phase9_does_not_add_command_categories_or_voice_exit():
         "translate_to_arabic",
         "translate_to_english",
         "help",
+        "cancel",
+        "status",
+        "what_do_you_see",
+        "repeat_guidance",
+        "read_again",
+        "capture_now",
+        "switch_arabic",
+        "switch_english",
+        "quiet_mode",
+        "verbose_mode",
+        "voice_test",
+        "exit",
         "unknown",
         "ambiguous",
     }
-    assert "exit" not in {intent.value for intent in CommandIntent}
     assert "shutdown" not in {intent.value for intent in CommandIntent}
 
 

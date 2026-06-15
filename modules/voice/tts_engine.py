@@ -18,6 +18,7 @@ from modules.voice.voice_models import (
     SpeechResult,
     TTSError,
     TTSErrorCode,
+    clamp_speech_rate,
 )
 
 
@@ -297,6 +298,147 @@ class EspeakNGEngine:
         return "en"
 
 
+@dataclass
+class WindowsSapiEngine:
+    """Windows built-in speech adapter via System.Speech."""
+
+    timeout_seconds: float = 60.0
+    runner: Runner = subprocess.run
+    name: str = "windows_sapi"
+    supports_pause: bool = False
+    supports_resume: bool = False
+
+    def speak(self, request: SpeechRequest) -> SpeechResult:
+        started = time.monotonic()
+        culture_prefix = self._culture_prefix_for_language(request.language)
+        command = [
+            "powershell",
+            "-NoProfile",
+            "-Command",
+            (
+                "Add-Type -AssemblyName System.Speech; "
+                "$text = [Console]::In.ReadToEnd(); "
+                "$speaker = New-Object System.Speech.Synthesis.SpeechSynthesizer; "
+                f"$culturePrefix = '{culture_prefix}'; "
+                "$voice = $speaker.GetInstalledVoices() | "
+                "Where-Object { $_.Enabled -and $_.VoiceInfo.Culture.Name.StartsWith($culturePrefix) } | "
+                "Select-Object -First 1; "
+                "if ($voice -ne $null) { $speaker.SelectVoice($voice.VoiceInfo.Name); } "
+                "elseif ($culturePrefix -eq 'ar') { "
+                "Write-Error 'No installed Windows SAPI Arabic voice was found.'; exit 3; "
+                "} "
+                f"$speaker.Rate = {self._rate_for_request(request.rate_wpm)}; "
+                "$speaker.Speak($text);"
+            ),
+        ]
+        try:
+            completed = self.runner(
+                command,
+                input=request.text,
+                text=True,
+                capture_output=True,
+                timeout=self._timeout_for_request(request),
+                check=False,
+            )
+        except FileNotFoundError:
+            return self._failure(
+                operation=request.operation,
+                code=TTSErrorCode.TTS_ENGINE_UNAVAILABLE,
+                message="PowerShell/System.Speech is not available.",
+                guidance="The Windows speech engine is not available.",
+            )
+        except subprocess.TimeoutExpired:
+            return self._failure(
+                operation=request.operation,
+                code=TTSErrorCode.TTS_ENGINE_FAILURE,
+                message="Windows speech timed out.",
+                guidance="The Windows speech engine timed out.",
+            )
+        except Exception as exc:
+            return self._failure(
+                operation=request.operation,
+                code=TTSErrorCode.TTS_ENGINE_FAILURE,
+                message=f"Unexpected Windows speech failure: {type(exc).__name__}",
+                guidance="The Windows speech engine failed unexpectedly.",
+            )
+        duration_ms = int((time.monotonic() - started) * 1000)
+        if completed.returncode != 0:
+            return self._failure(
+                operation=request.operation,
+                code=TTSErrorCode.TTS_ENGINE_UNAVAILABLE
+                if completed.returncode == 3
+                else TTSErrorCode.TTS_ENGINE_FAILURE,
+                message=completed.stderr.strip() or "Windows speech failed.",
+                guidance=(
+                    "No Windows Arabic voice is installed. Install edge-tts or an Arabic Windows voice."
+                    if completed.returncode == 3
+                    else "The Windows speech engine could not read the text."
+                ),
+            )
+        return SpeechResult.ok(
+            operation=request.operation,
+            engine_name=self.name,
+            duration_ms=duration_ms,
+            guidance="Reading started.",
+        )
+
+    def stop(self) -> SpeechResult:
+        return SpeechResult.ok(
+            operation=SpeechOperation.STOP,
+            engine_name=self.name,
+            guidance="Reading stopped.",
+        )
+
+    def pause(self) -> SpeechResult:
+        return _unsupported_result(
+            operation=SpeechOperation.PAUSE,
+            engine_name=self.name,
+            code=TTSErrorCode.TTS_PAUSE_UNSUPPORTED,
+            guidance="Pause is not supported by the Windows speech adapter.",
+        )
+
+    def resume(self) -> SpeechResult:
+        return _unsupported_result(
+            operation=SpeechOperation.CONTINUE,
+            engine_name=self.name,
+            code=TTSErrorCode.TTS_RESUME_UNSUPPORTED,
+            guidance="Continue is not supported by the Windows speech adapter.",
+        )
+
+    def _failure(
+        self,
+        *,
+        operation: SpeechOperation,
+        code: TTSErrorCode,
+        message: str,
+        guidance: str,
+    ) -> SpeechResult:
+        return SpeechResult.failure(
+            operation=operation,
+            engine_name=self.name,
+            error=TTSError(code=code, message=message, engine_name=self.name),
+            guidance=guidance,
+        )
+
+    def _timeout_for_request(self, request: SpeechRequest) -> float:
+        words = max(1, len(str(request.text or "").split()))
+        rate_wpm = max(80, int(request.rate_wpm or 150))
+        estimated_seconds = (words / rate_wpm) * 60.0
+        return max(self.timeout_seconds, estimated_seconds + 30.0)
+
+    @staticmethod
+    def _rate_for_request(rate_wpm: int | None) -> int:
+        rate = clamp_speech_rate(rate_wpm)
+        return max(-10, min(10, int(round((rate - 150) / 7))))
+
+    @staticmethod
+    def _culture_prefix_for_language(language: str) -> str:
+        normalized = (language or "").strip().lower()
+        if normalized.startswith("ar"):
+            return "ar"
+        return "en"
+
+
 def _unsupported_result(
     *,
     operation: SpeechOperation,
@@ -321,4 +463,5 @@ __all__ = [
     "EspeakNGEngine",
     "MockTTSEngine",
     "TTSEngine",
+    "WindowsSapiEngine",
 ]

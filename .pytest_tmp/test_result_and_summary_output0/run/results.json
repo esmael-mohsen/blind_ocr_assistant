@@ -1,0 +1,30 @@
+{
+  "dataset_id": "phase10-controlled",
+  "results": [
+    {
+      "duration_ms": 1,
+      "expected_match_score": null,
+      "failure_category": "weak_ocr_result",
+      "fallback_used": false,
+      "language_label": "ar",
+      "ocr_path": "cascade",
+      "quality_score": null,
+      "safe_metadata": {
+        "engine_name": "cascade",
+        "failure_category": "weak_ocr_result",
+        "ocr_path": "cascade",
+        "sample_id": "arabic_book_normal_001"
+      },
+      "sample_id": "arabic_book_normal_001",
+      "scenario_labels": [
+        "book_page",
+        "normal_quality"
+      ],
+      "status": "failed",
+      "success": false,
+      "text_length": 0
+    }
+  ],
+  "run_id": "20260520-152500-803329-6a950156-phase10",
+  "status": "partial"
+}

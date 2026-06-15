@@ -110,3 +110,15 @@ and exclude user images, OCR text, translations, secrets, and private debug
 paths. Manual startup remains available through `scripts/run_assistant.sh`; the
 systemd service template is optional and disabled until a maintainer enables it
 intentionally.
+
+## Gemini-First OCR
+
+The integrated runtime can use Gemini as the first OCR route for Arabic,
+English, and mixed printed text. Configure `GEMINI_API_KEY` and keep
+`ASSISTANT_GEMINI_OCR_ENABLED=true` to run Gemini before local OCR. If Gemini is
+unavailable, `ASSISTANT_GEMINI_OCR_FALLBACK_LOCAL=true` keeps the assistant
+usable through PaddleOCR and Tesseract.
+
+Gemini OCR sends the selected image to the Gemini API. Default logs remain
+privacy-safe and exclude image payloads, Base64 data, raw OCR text, cleaned
+text, prompts, and secrets.

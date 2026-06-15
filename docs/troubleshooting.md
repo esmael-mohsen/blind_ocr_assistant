@@ -129,6 +129,30 @@ the cascade skips online OCR and routes locally. This is expected offline
 behavior and should not upload the image. Local accuracy OCR runs first, with
 emergency OCR as fallback.
 
+## Gemini OCR Is Unavailable
+
+Gemini is the preferred online OCR route when `GEMINI_API_KEY` is set and
+`ASSISTANT_GEMINI_OCR_ENABLED=true`. If the key is missing, internet is
+unavailable, the provider times out, quota is exhausted, or the response cannot
+be parsed, the assistant falls back to local OCR when
+`ASSISTANT_GEMINI_OCR_FALLBACK_LOCAL=true`.
+
+Use these settings for the Gemini route:
+
+```bash
+GEMINI_API_KEY=your-key
+ASSISTANT_GEMINI_OCR_ENABLED=true
+ASSISTANT_GEMINI_OCR_MODEL=gemini-2.5-flash-lite
+ASSISTANT_GEMINI_OCR_TIMEOUT_SECONDS=20
+ASSISTANT_GEMINI_OCR_FALLBACK_LOCAL=true
+```
+
+Gemini OCR sends the selected image to the Gemini API. Normal logs do not store
+the image, Base64 payload, prompt, raw OCR text, cleaned text, or API key. The
+Gemini free tier is useful for development, but production use can require
+account limits, quota review, or billing depending on Google's current Gemini
+API terms.
+
 ## Weak OCR Result
 
 OCR output below the default `0.70` quality threshold is treated as weak even if

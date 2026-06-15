@@ -4,9 +4,12 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
+import logging
+import os
 import time
 from typing import Any
 
+from modules.common.logging import LOGGER_NAME
 from modules.translation.base import validate_translation_result
 from modules.translation.translation_models import (
     TranslationError,
@@ -32,6 +35,16 @@ class ArgosTranslateFallback:
     def translate(self, request: TranslationRequest) -> TranslationResult:
         """Translate clean text with local Argos resources when available."""
         started = time.monotonic()
+        logger = logging.getLogger(LOGGER_NAME)
+        clean_text = (request.source_text or "").strip()
+        logger.info(
+            "TRANSLATION_PROVIDER_ATTEMPT provider=%s path=%s source=%s target=%s length=%s",
+            self.name,
+            self.path.value,
+            request.source_language.value,
+            request.target_language.value,
+            len(clean_text),
+        )
         if not request.allow_offline:
             return self._failure(
                 request,
@@ -94,7 +107,7 @@ class ArgosTranslateFallback:
                 started,
             )
 
-        return TranslationResult.ok(
+        result = TranslationResult.ok(
             source_language=request.source_language,
             target_language=request.target_language,
             translated_text=translated_text,
@@ -108,6 +121,27 @@ class ArgosTranslateFallback:
             ),
             guidance="Fallback translation is ready.",
         )
+
+        logger.info(
+            "TRANSLATION_PROVIDER_RESULT provider=%s success=%s valid=%s duration_ms=%s",
+            self.name,
+            result.success,
+            result.is_valid,
+            result.duration_ms,
+        )
+        if logger.isEnabledFor(logging.DEBUG) and os.getenv("SENSITIVE_TEXT_LOGGING", "").strip().lower() in {
+            "1",
+            "true",
+            "yes",
+            "on",
+        }:
+            logger.debug(
+                "TRANSLATION_PROVIDER_TEXT provider=%s translated_text=%r",
+                self.name,
+                result.translated_text,
+            )
+
+        return result
 
     def _load_languages(self) -> list[Any]:
         if self._languages is not None:
@@ -134,6 +168,11 @@ class ArgosTranslateFallback:
         message: str,
         started: float,
     ) -> TranslationResult:
+        logging.getLogger(LOGGER_NAME).info(
+            "TRANSLATION_PROVIDER_RESULT provider=%s success=false code=%s",
+            self.name,
+            code.value,
+        )
         return TranslationResult.failure(
             source_language=request.source_language,
             target_language=request.target_language,

@@ -1,0 +1,2 @@
+2026-05-20 18:24:20,517 INFO blind_ocr_assistant BOOTSTRAP_TEST operational event only
+2026-05-20 18:24:20,537 INFO blind_ocr_assistant RUNTIME_TEST mode=SEARCHING_TEXT clean_text=<redacted:length=12> quality_score=0.650

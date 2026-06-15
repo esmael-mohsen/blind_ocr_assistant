@@ -286,7 +286,12 @@ def test_translate_to_english_uses_latest_clean_arabic_text():
         (
             "clean Arabic",
             "en",
-            {"source_language": "ar", "allow_online": True, "allow_offline": True},
+            {
+                "source_language": "ar",
+                "explicit_source_language": False,
+                "allow_online": True,
+                "allow_offline": True,
+            },
         )
     ]
     assert workflow.get_state().last_translated_text == "english translation"
@@ -317,6 +322,32 @@ def test_translate_to_arabic_uses_latest_clean_english_text():
     assert result.target_language == "ar"
     assert result.fallback_used is True
     assert workflow.get_state().last_translated_text == "arabic translation"
+
+
+def test_translate_from_mixed_text_uses_opposite_source_direction():
+    translation = TranslationStub(translated_text="arabic translation")
+    workflow = AssistantWorkflow(
+        dialogue_manager=DialogueStub(
+            _translation_command(CommandIntent.TRANSLATE_TO_ARABIC, "ar", "en")
+        ),
+        translation_controller=translation,
+    )
+    workflow.session = workflow.session.with_updates(
+        state=workflow.session.state.with_successful_read(
+            raw_text="raw mixed",
+            clean_text="TOTAL PLUS\nجرعة يومية",
+            language="mixed",
+            selected_ocr_engine="ocr_space",
+            fallback_used=False,
+            guidance="Reading is starting.",
+        )
+    )
+
+    result = workflow.handle_command("translate to arabic", language_hint="en")
+
+    assert result.success is True
+    assert translation.calls[0][2]["source_language"] == "en"
+    assert translation.calls[0][2]["explicit_source_language"] is True
 
 
 def test_failed_read_attempt_does_not_clear_latest_clean_text():
